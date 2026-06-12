@@ -29,6 +29,15 @@ on **edge cases** (cytochrome oxidase subunits, multi-EC enzymes) where the
 SapBERT NAME axis under-ranks the gold but the EC axis would surface it.
 The mechanism is correct; the eval-set distribution doesn't exercise it.
 
+### Investigated but not shipped (mixed results)
+- **Lite stacking ensemble** (`(lora_norm, medcpt_norm, ec_match, has_query_ec)` → logreg
+  on the 600-gene multi-gold harness): trades K-positions. Lifts hit@5 by +2.2 pp and
+  hit@10 by +0.3 pp, but **hurts** hit@1 by -3.5 pp and hit@20 by -1.3 pp. Production
+  σ=0.30 fusion remains the better all-K choice. Trained coefficients (lora≈3.95,
+  medcpt≈3.78, ec_match≈2.21, has_query_ec≈-1.13) saved to
+  `workspace/42_42_corpus_reencode_stacking/data/output/lite_stacking_model_spec.json`
+  for users who want to opt in to K=5 maximisation.
+
 ### Investigated and rejected (v2 campaign)
 After 5 additional Research-OS steps (36–40, plus 42):
 - 5 biomedical cross-encoder rerankers (NeuML/biomedbert, PubMedBERT-MIRIAD,
