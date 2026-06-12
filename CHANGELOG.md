@@ -5,6 +5,54 @@ All notable changes to ontomap are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] — 2026-06-12
+
+### Added
+- **`Pipeline.map(name=, ec=, notes=, tags=, id=, top_k=)`** — explicit
+  structured input for a single query. Compose any combination of name +
+  EC + tags + notes without hand-building the text format. Requires at
+  least one of `name` / `ec` / `notes` / `tags`. Examples:
+  ```python
+  pipe.map(name="Aldehyde dehydrogenase", ec="1.2.1.3")
+  pipe.map(name="Aldehyde dehydrogenase")     # name only
+  pipe.map(ec="1.2.1.3")                       # EC only
+  pipe.map(name="Aldehyde dehydrogenase", ec="1.2.1.3",
+           tags=["putative", "partial"])
+  ```
+- **`ontomap map --name "..." --ec "..." [--tags "putative;partial"]`** —
+  matching CLI flags for the same shapes. Composes into the same text
+  format `Pipeline.map_descriptions` expects.
+- **`tests/test_pipeline_map_api.py`** — 19 tests (12 weight-free composition
+  + 7 weight-gated integration). All pass.
+
+### Changed
+- **Bundle slim-down**: `data/embeddings/sso_source_sapbert.npz` and
+  `data/embeddings/ko_source_sapbert.npz` are no longer included or required.
+  They were only used by the workspace's `step17_evaluate.evaluate_split`
+  research helper (LoRA-vs-base benchmarking), NEVER loaded by the runtime.
+  At inference time, source axes (your free-text descriptions or SSO/KO ids)
+  are always encoded on-the-fly via the LoRA model, which is the correct
+  behaviour for arbitrary user inputs.
+- `scripts/regen_embeddings.py` now skips building source caches by default.
+  Add `--include-source-caches` to opt in (only needed for split-eval research).
+- `_paths.py` no longer treats source NPZs as required artefacts.
+
+### Verified
+- All input shapes round-trip cleanly through the CLI and Python API:
+  - `name + EC`           → "Aldehyde dehydrogenase (EC 1.2.1.3)" — source_ec='1.2.1.3'
+  - `name only`           → "Aldehyde dehydrogenase"               — source_ec=None
+  - `EC only`             → "EC 1.2.1.3"                           — source_ec='1.2.1.3'
+  - `name + EC + tags`    → "<name> (EC <ec>) [tag1; tag2]"        — source_ec='1.2.1.3'
+  - `EC w/ prefix`        → "EC 1.2.1.3" (no double-prefix)        — source_ec='1.2.1.3'
+  - `multi-EC`            → "<name> (EC X.Y.Z) (EC A.B.C)"          — source_ec='X;A'
+
+### Migration
+- No breaking changes. Existing callers see the same `MapResult` shape.
+- New `.map()` method is purely additive — `map_one`, `map_batch`,
+  `map_descriptions` unchanged.
+- The two removed `.npz` files are reproducible via
+  `python scripts/regen_embeddings.py --include-source-caches`.
+
 ## [1.3.0] — 2026-06-12
 
 ### Added

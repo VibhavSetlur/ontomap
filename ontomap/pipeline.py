@@ -233,6 +233,64 @@ class Pipeline:
         )
         return [_fr_to_mapresult(fr) for fr in frs]
 
+    def map(
+        self,
+        *,
+        name: str | None = None,
+        ec: str | None = None,
+        notes: str | None = None,
+        tags: list[str] | None = None,
+        id: str | None = None,
+        top_k: int | None = None,
+        verbose: bool = False,
+    ) -> "MapResult":
+        """v1.4.0 — structured input convenience for a single query.
+
+        Compose any combination of `name`, `ec`, `notes`, `tags` into the
+        pipeline-friendly text the runtime expects. Accepts:
+
+        - `name + ec`       → "Aldehyde dehydrogenase (EC 1.2.1.3)"
+        - `name only`       → "Aldehyde dehydrogenase"
+        - `ec only`         → "EC 1.2.1.3"
+        - `name + ec + tags` → "Aldehyde dehydrogenase (EC 1.2.1.3) [putative; partial]"
+
+        At least one of `name` or `ec` must be non-empty.
+
+        Example:
+            >>> pipe.map(name="Enoyl-CoA hydratase", ec="4.2.1.17", id="g1")
+            MapResult(query_id='g1', predictions=[...], ...)
+            >>> pipe.map(ec="1.2.1.3")          # EC only
+            >>> pipe.map(name="aldehyde dehydrogenase")  # name only
+            >>> pipe.map(name="...", ec="...", tags=["putative", "partial"])
+        """
+        parts = []
+        if name and name.strip():
+            parts.append(name.strip())
+        if ec and ec.strip():
+            ec = ec.strip()
+            if not ec.lower().startswith("ec"):
+                ec = f"EC {ec}"
+            # if we already have a name, append EC as "(EC X.Y.Z)"
+            if parts:
+                parts[-1] = f"{parts[-1]} ({ec})"
+            else:
+                parts.append(ec)
+        if tags:
+            tag_text = "; ".join(t.strip() for t in tags if t and t.strip())
+            if tag_text:
+                parts.append(f"[{tag_text}]")
+        if notes and notes.strip():
+            parts.append(f"({notes.strip()})")
+        if not parts:
+            raise ValueError(
+                "Pipeline.map requires at least one of name, ec, notes, tags to be non-empty"
+            )
+        text = " ".join(parts)
+        results = self.map_descriptions(
+            [text], ids=[id or "Q1"], top_k=top_k, verbose=verbose
+        )
+        return results[0]
+
 
 def _fr_to_mapresult(fr) -> MapResult:
     """Convert _frozen_runtime.FrozenResult into the public MapResult shape."""

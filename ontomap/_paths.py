@@ -108,8 +108,12 @@ def check_bundle() -> dict:
         "swept_weights.json":       swept_weights_path(),
         "MANIFEST.txt":             manifest_path(),
         "data/embeddings/target_sapbert.npz":     embeddings_dir() / "target_sapbert.npz",
-        "data/embeddings/sso_source_sapbert.npz": embeddings_dir() / "sso_source_sapbert.npz",
-        "data/embeddings/ko_source_sapbert.npz":  embeddings_dir() / "ko_source_sapbert.npz",
+        # v1.4.0: sso/ko_source_sapbert.npz no longer bundled — they were only
+        # used by the workspace's step17_evaluate.evaluate_split research helper,
+        # NEVER loaded by the runtime. For arbitrary user inputs we always encode
+        # source axes on-the-fly with the LoRA model. Regenerate with
+        # `python scripts/regen_embeddings.py --include-source-caches` if you
+        # specifically need them for split-eval research.
         "data/modelseed_corpus/reactions.tsv":    modelseed_corpus_dir() / "reactions.tsv",
         "data/modelseed_corpus/compounds.tsv":    modelseed_corpus_dir() / "compounds.tsv",
         "data/dictionaries/SSO_dictionary.json":  dictionary_path("sso"),

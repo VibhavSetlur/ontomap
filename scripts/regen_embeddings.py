@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""Regenerate the bundled SapBERT corpus + source embeddings.
+"""Regenerate the bundled SapBERT corpus embedding (the only one the runtime needs).
 
 After cloning + downloading weights (download_models.py) + corpus (build_corpus.py),
-run this to compute the pre-encoded NumPy NPZs that the runtime reads at load:
+run this to compute the pre-encoded NumPy NPZ that the runtime reads at load:
 
     python scripts/regen_embeddings.py
 
-Outputs (~50 MB total, written under data/embeddings/):
+Outputs (~350 MB, written under data/embeddings/):
   target_sapbert.npz       — NAME / EC / EQUATION / PATHWAY embeddings for all
                              non-obsolete ModelSEED reactions (~43 k rows × 4 axes)
-  sso_source_sapbert.npz   — NAME / EC embeddings for all SSO dictionary entries
-  ko_source_sapbert.npz    — NAME / EC embeddings for all KO dictionary entries
+
+The runtime encodes SOURCE inputs (your free-text descriptions or SSO/KO ids)
+fresh on every call with the LoRA model — no pre-cached source embeddings are
+needed for production. The `--include-source-caches` flag will additionally
+build `{sso,ko}_source_sapbert.npz`, which are only needed by the workspace
+`step17_evaluate.evaluate_split` research helper (LoRA-vs-base benchmarking).
 
 Takes ~30 s on 1× H100, ~10 min on CPU.
 """
@@ -26,6 +30,13 @@ EMB_DIR = REPO_ROOT / "data" / "embeddings"
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--include-source-caches", action="store_true",
+                    help="ALSO build {sso,ko}_source_sapbert.npz (only needed for "
+                         "step17_evaluate.evaluate_split research; NOT used by runtime)")
+    args = ap.parse_args()
+
     EMB_DIR.mkdir(parents=True, exist_ok=True)
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -76,7 +87,13 @@ def main():
     np.savez_compressed(out, ids=np.array(ids), name=name_e, ec=ec_e, equation=eq_e, pathway=pw_e)
     print(f"  → {out}  ({out.stat().st_size/1e6:.1f} MB)")
 
-    # ---------------- SSO source dictionary ----------------
+    if not args.include_source_caches:
+        print("\n[source-caches] skipped (use --include-source-caches to build them; "
+              "they're only needed for split-eval research, NOT for the runtime)")
+        print("\n✓ Done. Run `ontomap info` or `ontomap map --text 'Enoyl-CoA hydratase (EC 4.2.1.17)'` to verify.")
+        return
+
+    # ---------------- SSO / KO source dictionaries ----------------
     for direction, loader in [("sso", omdata.load_sso_dictionary),
                                ("ko",  omdata.load_ko_dictionary)]:
         print(f"\n[source.{direction}] rendering …")

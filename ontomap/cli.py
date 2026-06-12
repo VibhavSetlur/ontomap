@@ -28,8 +28,30 @@ def cmd_map(args: argparse.Namespace) -> int:
     descriptions = None  # set in free-text mode
     description_ids = None
 
+    # v1.4.0: --name / --ec structured input. Compose into the text form
+    # that map_descriptions expects so the rest of the path is unchanged.
+    if args.name or args.ec:
+        if not direction:
+            direction = "sso"
+        parts = []
+        if args.name and args.name.strip():
+            parts.append(args.name.strip())
+        if args.ec and args.ec.strip():
+            ec = args.ec.strip()
+            if not ec.lower().startswith("ec"):
+                ec = f"EC {ec}"
+            if parts:
+                parts[-1] = f"{parts[-1]} ({ec})"
+            else:
+                parts.append(ec)
+        if args.tags:
+            tag_text = "; ".join(t.strip() for t in args.tags.split(";") if t.strip())
+            if tag_text:
+                parts.append(f"[{tag_text}]")
+        descriptions = [" ".join(parts)]
+        description_ids = [args.text_id or "FREE:00000001"]
     # Free-text single-query
-    if args.text:
+    elif args.text:
         if not direction:
             direction = "sso"  # SSO LoRA is the default for free-text
         descriptions = [args.text]
@@ -249,6 +271,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="path to input file containing free-text descriptions. "
              "Use --text-column to point at the description column (auto-detected).",
     )
+    grp.add_argument(
+        "--name", type=str,
+        help='(v1.4.0) name component of a structured query; pair with --ec '
+             '(e.g. --name "Aldehyde dehydrogenase" --ec 1.2.1.3)',
+    )
+    m.add_argument(
+        "--ec", type=str, default=None,
+        help='(v1.4.0) EC component of a structured query. Works with --name (composed '
+             'into "<name> (EC <ec>)") OR alone (e.g. --ec 1.2.1.3, direction defaults to sso)',
+    )
+    m.add_argument("--tags", type=str, default=None,
+        help='(v1.4.0) optional semicolon-separated tags appended to the query, '
+             'e.g. --tags "putative;partial"')
     m.add_argument("--direction", choices=["sso", "ko"], help="required when using --input")
     m.add_argument("--id-column", default=None, help="column name in --input file (auto-detected if omitted)")
     m.add_argument(
