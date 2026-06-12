@@ -1,0 +1,79 @@
+reaction_id,current_ec,proposed_ec,evidence_source,name_truncated
+rxn14421,,1.10.3.10,step33c_diagnosis,cytochrome-bo reductase (ubiquinol: 2 protons)
+rxn14422,,1.10.3.14,step33c_diagnosis,cytochrome-bd oxidase (2 protons translocated)
+rxn10089,,2.8.1.6,name+aliases,biotin synthase (ala-L producing)
+rxn12249,,1.3.1.62,name+aliases,pimeloyl-coa dehydrogenase
+rxn17081,,1.14.13.42,name+aliases,4-hydroxyphenylacetonitrile hydroxylase
+rxn17773,,3.1.1,name+aliases,3.1.1.--RXN.c
+rxn25781,,2.4.2,name+aliases,2.4.2.-
+rxn39792,,1.1.3.41,name+aliases,xylitol:oxygen oxidoreductase
+rxn41080,,3.1.13.1,name+aliases,Ribonuclease II
+rxn41298,,1.14.11.9,name+aliases,
+rxn41478,,3.4.19.5,name+aliases,
+rxn41777,,3.7.1.8,name+aliases,
+rxn41793,,3.2.1.159,name+aliases,
+rxn42444,,1.14.13.70,name+aliases,
+rxn42620,,3.1.26.12,name+aliases,
+rxn42794,,3.4.11.18,name+aliases,
+rxn43146,,3.2.1.23,name+aliases,
+rxn43252,,3.4.21.69,name+aliases,
+rxn43255,,1.14.13.72,name+aliases,methylsterol monooxygenase
+rxn43370,,3.5.1.97,name+aliases,
+rxn43478,,3.2.1.114,name+aliases,
+rxn43493,,6.3.2.16,name+aliases,
+rxn43659,,1.14.19.3,name+aliases,
+rxn43682,,3.8.1.11,name+aliases,
+rxn43687,,2.4.1.243,name+aliases,
+rxn43817,,1.14.13.42,name+aliases,4-hydroxyphenylacetonitrile hydroxylase
+rxn43888,,1.2.7.7,name+aliases,
+rxn43919,,2.5.1.58,name+aliases,
+rxn43938,,1.14.13.36,name+aliases,
+rxn43997,,1.3.3.9,name+aliases,
+rxn44013,,4.1.2.30,name+aliases,
+rxn44230,,2.3.2.1,name+aliases,
+rxn44299,,2.3.1.80,name+aliases,
+rxn44532,,2.3.1.75,name+aliases,
+rxn44559,,4.2.2.13,name+aliases,
+rxn44582,,1.14.19.5,name+aliases,
+rxn44678,,6.1.1.13,name+aliases,
+rxn44835,,1.14.13.78,name+aliases,"ent-kaur-16-ene,NADPH:oxygen oxidoreductase (hydroxylating)"
+rxn44958,,2.4.1.122,name+aliases,
+rxn44988,,2.4.1.47,name+aliases,
+rxn45168,,1.2.1.40,name+aliases,"(25R)-3alpha,7alpha,12alpha-trihydroxy-5beta-cholestan-26-al:NAD+ 26-oxidoreductase"
+rxn45183,,3.4.21.38,name+aliases,
+rxn45310,,3.2.2.17,name+aliases,
+rxn45411,,1.14.13.79,name+aliases,ent-kaurenoate monooxygenase
+rxn45472,,2.4.1.240,name+aliases,
+rxn45579,,2.4.99.4,name+aliases,
+rxn45762,,3.4.21.111,name+aliases,
+rxn45763,,1.14.21.6,name+aliases,
+rxn45938,,1.3.99.5,name+aliases,
+rxn46262,,3.1.13.5,name+aliases,
+rxn46376,,3.4.11.7,name+aliases,
+rxn46532,,2.4.1.151,name+aliases,
+rxn46579,,1.14.99.35,name+aliases,
+rxn46598,,2.4.1.115,name+aliases,
+rxn46642,,2.4.1.214,name+aliases,
+rxn46650,,3.2.1.102,name+aliases,
+rxn46875,,3.3.2.2,name+aliases,
+rxn46963,,3.2.1.26,name+aliases,6-phospho-beta-fructofuranosidase
+rxn46995,,1.3.99.17,name+aliases,
+rxn47001,,3.1.1,name+aliases,
+rxn47148,,3.6.3.33,name+aliases,
+rxn47239,,3.2.1.35,name+aliases,
+rxn47288,,2.4.1.149,name+aliases,
+rxn47291,,3.1.26.1,name+aliases,
+rxn47295,,2.4.1.46,name+aliases,
+rxn47486,,3.2.1.21,name+aliases,
+rxn47721,,2.4.1.237,name+aliases,
+rxn47835,,2.7.12.2,name+aliases,
+rxn47858,,3.2.1.139,name+aliases,
+rxn47995,,2.4.1.119,name+aliases,
+rxn48179,,2.3.1.42,name+aliases,
+rxn48202,,3.1.26.5,name+aliases,
+rxn48224,,2.6.1.58,name+aliases,
+rxn48227,,2.4.1.92,name+aliases,
+rxn48231,,4.1.1.77,name+aliases,
+rxn48345,,2.3.2.13,name+aliases,
+rxn48357,,2.4.1.86,name+aliases,
+rxn48476,,2.7.1.156,name+aliases,
