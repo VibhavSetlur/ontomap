@@ -43,6 +43,7 @@ class PipelineConfig:
     sigma: float | None = None        # auto from direction if None
     weights_dir: Path | None = None   # bundled by default
     seed: int = 17
+    ec_augment: bool = False          # v1.2.0 — merge EC-matched reactions into pool
 
     def resolved_sigma(self) -> float:
         return self.sigma if self.sigma is not None else SIGMA[self.direction]
@@ -158,7 +159,9 @@ class Pipeline:
         if self._loaded:
             return
         from ontomap._frozen_runtime import FrozenPipeline
-        self._impl = FrozenPipeline(direction=self.config.direction, device=self.config.device)
+        self._impl = FrozenPipeline(direction=self.config.direction,
+                                     device=self.config.device,
+                                     ec_augment=self.config.ec_augment)
         self._impl.load()
         self._loaded = True
 

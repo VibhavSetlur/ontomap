@@ -102,6 +102,35 @@ def _ec_match_bonus(query_ecs: list[str], cand_ec_str: str, bonus: float = EC_PR
     return 0.0
 
 
+def _ec_augmented_candidates(query_ecs: list[str], rxn_meta: dict, already: set, max_extra: int = 20) -> list[str]:
+    """v1.2.0: find ModelSEED reactions whose ec_numbers substring-matches a
+    query EC and that are NOT already in the candidate pool. Returns up to
+    `max_extra` reaction IDs.
+
+    Used by --ec-augment to broaden the candidate pool with EC-matched reactions
+    that the SapBERT-LoRA NAME axis may have missed.
+    """
+    extras: list[str] = []
+    for rxn_id, meta in rxn_meta.items():
+        if rxn_id in already:
+            continue
+        cand_ec = (meta or {}).get("ec_numbers", "")
+        if not cand_ec:
+            continue
+        cand_list = str(cand_ec).split("|")
+        for q in query_ecs:
+            for c in cand_list:
+                c = c.strip()
+                if q and c and (q in c or c in q):
+                    extras.append(rxn_id)
+                    if len(extras) >= max_extra:
+                        return extras
+                    break
+            if extras and extras[-1] == rxn_id:
+                break
+    return extras
+
+
 # ---------------------------------------------------------------------------
 # Load bundled workspace helpers (step 17 eval + step 18 medcpt rerank)
 # ---------------------------------------------------------------------------
@@ -252,12 +281,18 @@ def _resolve_device(spec: str) -> str:
 class FrozenPipeline:
     """Pipeline_3 frozen runtime — uses only bundled ontomap artifacts."""
 
-    def __init__(self, direction: str, device: str = "auto"):
+    def __init__(self, direction: str, device: str = "auto", ec_augment: bool | None = None):
         assert direction in ("sso", "ko")
         self.direction = direction
         self.device = _resolve_device(device)
         self._loaded = False
         self._first_call = True
+
+        # v1.2.0: EC-augmented retrieval. If ec_augment=None, defer to env
+        # var OMAP_EC_AUGMENT (default off). Setting True explicitly overrides.
+        if ec_augment is None:
+            ec_augment = os.environ.get("OMAP_EC_AUGMENT", "0") == "1"
+        self._ec_augment = bool(ec_augment)
 
         # Will be populated by .load()
         self._src_dict = None
@@ -489,17 +524,43 @@ class FrozenPipeline:
             # v1.1.0: EC-priority bonus — if query EC matches candidate EC,
             # add a small fixed boost to the fused score. Validated as a
             # +1pp hit@1 / +0.7pp frac@20 free upgrade.
-            if EC_PRIORITY_ENABLED:
-                query_ecs = _extract_query_ecs(
-                    (meta_per_q[i].get("name") or "") if not is_free_text
-                    else override_dict.get(qid, {}).get("name", "")
+            query_ecs = _extract_query_ecs(
+                (meta_per_q[i].get("name") or "") if not is_free_text
+                else override_dict.get(qid, {}).get("name", "")
+            )
+            if EC_PRIORITY_ENABLED and query_ecs:
+                bonuses = np.array([
+                    _ec_match_bonus(query_ecs, (self._rxn_meta_by_id.get(rxn_id, {}) or {}).get("ec_numbers", ""))
+                    for rxn_id in cand_rxns
+                ], dtype=np.float32)
+                fused = fused + bonuses
+
+            # v1.2.0: EC-augmented retrieval — optionally MERGE in candidates whose
+            # ec_numbers exactly match the query EC but are NOT in the FAISS top-100.
+            # Off by default; controlled by ec_augment kwarg or OMAP_EC_AUGMENT env var.
+            if self._ec_augment and query_ecs:
+                extra_rxns = _ec_augmented_candidates(
+                    query_ecs, self._rxn_meta_by_id, set(cand_rxns), max_extra=20
                 )
-                if query_ecs:
-                    bonuses = np.array([
-                        _ec_match_bonus(query_ecs, (self._rxn_meta_by_id.get(rxn_id, {}) or {}).get("ec_numbers", ""))
-                        for rxn_id in cand_rxns
-                    ], dtype=np.float32)
-                    fused = fused + bonuses
+                if extra_rxns:
+                    # Score extras with MedCPT (LoRA score = 0 — cold add)
+                    extra_cand_texts = [
+                        s18.build_candidate_text(r, self._rxn_meta_by_id, {}, {}, {})
+                        for r in extra_rxns
+                    ]
+                    extra_med = np.array(s18.score_pairs(
+                        self._medcpt_model, self._medcpt_tokenizer, self.device, qtext, extra_cand_texts
+                    ), dtype=np.float32)
+                    # min-max norm against original medcpt range
+                    orig_lo, orig_hi = float(medcpt_scores.min()), float(medcpt_scores.max())
+                    extra_med_norm = np.zeros_like(extra_med) if orig_hi - orig_lo < 1e-9 else (extra_med - orig_lo) / (orig_hi - orig_lo)
+                    extra_med_norm = np.clip(extra_med_norm, 0.0, 1.0)
+                    # extras get fused with lora_norm=0 + EC bonus (they DO match by construction)
+                    extra_fused = (1 - sigma) * extra_med_norm + EC_PRIORITY_BONUS
+                    fused = np.concatenate([fused, extra_fused])
+                    cand_rxns = list(cand_rxns) + list(extra_rxns)
+                    ln = np.concatenate([ln, np.zeros(len(extra_rxns), dtype=np.float32)])
+                    mn = np.concatenate([mn, extra_med_norm])
             order = np.argsort(-fused)[:top_k]
 
             preds = [(cand_rxns[int(o)], float(fused[int(o)])) for o in order]

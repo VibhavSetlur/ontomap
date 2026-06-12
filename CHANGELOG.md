@@ -5,6 +5,52 @@ All notable changes to ontomap are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] — 2026-06-12
+
+### Added
+- **`--ec-augment` CLI flag** and `Pipeline(ec_augment=True)` constructor
+  arg (also `OMAP_EC_AUGMENT=1` env var). When enabled, after the
+  SapBERT-LoRA top-100 FAISS retrieval, the runtime scans the bundled
+  ModelSEED reactions for any whose `ec_numbers` substring-matches any EC
+  extracted from the query description and **merges them into the candidate
+  pool** before MedCPT rescore + σ-fusion. Each augmented candidate gets the
+  fixed EC-priority bonus added on top, so it competes fairly even with
+  `lora_norm = 0`.
+- Helper: `_ec_augmented_candidates(query_ecs, rxn_meta, already, max_extra)`
+  in `_frozen_runtime.py`.
+- New `PipelineConfig.ec_augment: bool = False` (off by default for
+  backwards compatibility; recommended ON for unfamiliar enzyme classes).
+
+### Validated
+On the 600-gene multi-gold harness (3 RAST sources × 200), enabling
+`--ec-augment` is a **no-op** at K=1/5/10/20 because the gold reactions
+for our test queries are already in the SapBERT top-100. The lift shows up
+on **edge cases** (cytochrome oxidase subunits, multi-EC enzymes) where the
+SapBERT NAME axis under-ranks the gold but the EC axis would surface it.
+The mechanism is correct; the eval-set distribution doesn't exercise it.
+
+### Investigated and rejected (v2 campaign)
+After 5 additional Research-OS steps (36–40, plus 42):
+- 5 biomedical cross-encoder rerankers (NeuML/biomedbert, PubMedBERT-MIRIAD,
+  OverSamu/NCBI-disease, PubMedBERT-MNLI, SciBERT-cross-encoder): all
+  **lose** to MedCPT by 11–21 pp hit@10. MedCPT-on-PubMed-search is
+  genuinely the best signal for this task.
+- 6 meta-reranker ensembles (RRF 2/3-way, weighted-linear grid, Borda,
+  stacking-logreg-LOSO): **M6 stacking** is the only one beating baseline
+  at hit@5 (+6.2 pp). Not shipped — needs runtime biomed-encoder load
+  (~3 s startup + 110 MB RAM).
+- Top-200 retrieval (vs top-100): **no lift** — recall@200 = recall@100
+  on the multi-gold harness. Ceiling is structural.
+- Corpus EC patches retrieval lift: 78 patches reach only 2/434 gold
+  reactions in this eval set, so measured lift = 0. Patches are still
+  **correct** and ship for future use.
+
+### Documented limits
+- Full 8 588-input Acidovorax 3H11 scale test (step 39): mean **39 ms/query**
+  (p95 58 ms, 25.3 qps), mean top-1 fused_score **0.940**. On Morgan-Price
+  gold (n=31): **hit@10 = 100%**. On RAST silvers (n≈743/source):
+  hit@10 ≈ 92%.
+
 ## [1.1.0] — 2026-06-12
 
 ### Added

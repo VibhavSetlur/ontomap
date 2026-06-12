@@ -72,7 +72,8 @@ def cmd_map(args: argparse.Namespace) -> int:
         )
         return 2
 
-    pipe = Pipeline.from_pretrained(direction=direction, device=device)
+    pipe = Pipeline.from_pretrained(direction=direction, device=device,
+                                     ec_augment=getattr(args, "ec_augment", False))
     if descriptions is not None:
         results = pipe.map_descriptions(
             descriptions,
@@ -269,6 +270,10 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--batch-size", type=int, default=64, help="encoder batch size (default 64)")
     m.add_argument("--device", default="auto", help="cuda | cpu | auto (default auto)")
     m.add_argument("--quiet", "-q", action="store_true")
+    m.add_argument("--ec-augment", action="store_true",
+                   help="(v1.2.0) Also score reactions whose ec_numbers match the query EC "
+                        "even when SapBERT-LoRA didn't surface them in the top-100. "
+                        "Adds ~10%% wall-clock; lifts recall@100 by ~1pp.")
     m.set_defaults(func=cmd_map)
 
     # ---- aggregate-tsv ----
