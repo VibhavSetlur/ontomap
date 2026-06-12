@@ -5,6 +5,67 @@ All notable changes to ontomap are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] — 2026-06-12
+
+### Added
+- **`reaction_meta[rxn_id]["ec_match_level"]`** in `MapResult` — per-prediction
+  integer signal of how the query EC relates to the candidate EC: `0` (no
+  match), `1` (prefix match — e.g. query `1.10.3` matches candidate
+  `1.10.3.10`), `2` (exact match).
+- **`reaction_meta[top1_rxn]["confidence_band"]`** — coarse `"high" / "medium"
+  / "low"` label for the top-1 prediction derived jointly from the fused
+  score and the margin vs the runner-up. Helps callers triage downstream
+  review effort without re-implementing the same heuristic.
+- **`reaction_meta[top1_rxn]["top1_margin"]`** — numeric `fused_score(rank=1) -
+  fused_score(rank=2)`, the same signal as `confidence_band` but raw.
+- **`scripts/download_models.py`** — fetches SapBERT + MedCPT and symlinks
+  into `weights/`. Idempotent.
+- **`scripts/build_corpus.py`** — fetches ModelSEED `reactions.tsv` +
+  `compounds.tsv` from upstream; `--patches` also applies the bundled
+  78-row EC backfill in-place.
+- **`scripts/regen_embeddings.py`** — rebuilds the SapBERT NAME/EC/EQ/PATHWAY
+  NPZs under `data/embeddings/`. ~30 s on H100, ~10 min on CPU.
+- **`scripts/finetune_lora.py`** — fine-tune a fresh SapBERT-LoRA adapter on
+  user `(source_label, target_reaction_id)` TSV pairs. Wraps `peft.LoraConfig`
+  + `sentence_transformers.losses.MultipleNegativesRankingLoss` with the
+  exact v1.0.0 hyperparameters (r=16, alpha=32, lr=2e-5, batch 128, 3
+  epochs, bf16). `--evaluate` computes hit@K + MRR on the held-out split.
+- **`scripts/setup.sh`** — one-shot bootstrap: download_models → build_corpus
+  --patches → regen_embeddings → smoke test. ~2 min on H100.
+- **`examples/01_text_input.py`** through **`examples/05_sqlite_output.py`** —
+  5 runnable scripts covering text input, --ec-augment diff, batch CSV +
+  SSSOM-TSV output, varied input shapes, SQLite output. `examples/README.md`
+  indexes them.
+- **`tests/test_ec_priority_unit.py`** — 17 unit tests on the EC helpers
+  (`_extract_query_ecs`, `_ec_match_bonus`, `_ec_augmented_candidates`)
+  that need no model weights. All pass in CI.
+- **`tests/test_input_robustness.py`** — 7 weight-gated cases (empty / >1400
+  chars / non-ASCII / dash-EC / multi-EC / name-only / EC-only) using a
+  module-scoped pipe fixture; skipped when weights aren't downloaded.
+- **`.github/workflows/ci.yml`** — GitHub Actions: ruff lint + import smoke
+  + unit tests on every push and PR.
+- **`CONTRIBUTING.md`** — what we welcome (bug fixes with tests, corpus EC
+  patches, examples) vs decline (reranker swaps without numbers, LLM in
+  core path).
+- **`DATA.md`** — what training data was used (KBase SSO 2 124 IDs / 3 717
+  pairs, KEGG KO 95.0 4 754 IDs / 11 016 pairs, ModelSEED biochemistry
+  43 775 reactions); licenses (SSO + ModelSEED CC0, KEGG academic-use,
+  MedCPT NIH research-use); how positives were paired + hard negatives
+  mined; per-split sizes for Split-A/B/C.
+- **`FINETUNE.md`** — step-by-step recipe for retraining the LoRA adapter on
+  user data (TSV format, hyperparameters, command, evaluation, swap-in
+  procedure).
+
+### Changed
+- Public README now leads with version banner + benchmark headline + links
+  to the Research-OS provenance trail in the parent workspace.
+
+### Migration
+- Existing callers see no breaking changes; `reaction_meta` now has extra
+  keys (`ec_match_level`, and on top-1 `confidence_band` + `top1_margin`)
+  but unchanged old keys (`name`, `ec_numbers`, `equation`, `pathway`,
+  `alt_names`). Old downstream code keeps working; new code can opt in.
+
 ## [1.2.0] — 2026-06-12
 
 ### Added

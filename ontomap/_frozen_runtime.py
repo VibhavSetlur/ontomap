@@ -571,10 +571,45 @@ class FrozenPipeline:
                 }
                 for o in order
             }
-            reaction_meta = {
-                cand_rxns[int(o)]: self._rxn_meta_by_id.get(cand_rxns[int(o)], {})
-                for o in order
-            }
+            # v1.3.0: compute per-prediction ec_match_level + confidence_band
+            # ec_match_level: 0=no EC match, 1=prefix match (e.g. query 3-lvl matches candidate 4-lvl),
+            #                 2=exact match
+            # confidence_band: derived from fused_score AND margin vs next-best
+            top_score = float(fused[int(order[0])]) if len(order) else 0.0
+            second_score = float(fused[int(order[1])]) if len(order) > 1 else 0.0
+            margin = top_score - second_score
+            reaction_meta = {}
+            for rank_idx, o in enumerate(order):
+                rxn_id = cand_rxns[int(o)]
+                base_meta = dict(self._rxn_meta_by_id.get(rxn_id, {}))
+                # ec_match_level
+                cand_ec = str(base_meta.get("ec_numbers", ""))
+                level = 0
+                if query_ecs and cand_ec:
+                    for q in query_ecs:
+                        for c in cand_ec.split("|"):
+                            c = c.strip()
+                            if not c:
+                                continue
+                            if q == c:
+                                level = max(level, 2)
+                            elif q in c or c in q:
+                                level = max(level, 1)
+                base_meta["ec_match_level"] = level
+                # confidence_band — combine score + margin (only set for top-1)
+                if rank_idx == 0:
+                    score_high = top_score >= 0.90
+                    score_med  = top_score >= 0.70
+                    margin_high = margin >= 0.05
+                    if score_high and margin_high:
+                        band = "high"
+                    elif score_high or (score_med and margin_high):
+                        band = "medium"
+                    else:
+                        band = "low"
+                    base_meta["confidence_band"] = band
+                    base_meta["top1_margin"] = round(margin, 4)
+                reaction_meta[rxn_id] = base_meta
             elapsed_ms = (time.perf_counter() - t0) * 1000
 
             r = FrozenResult(
