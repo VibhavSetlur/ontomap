@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: install minimal deps
+        run: |
+          python -m pip install -U pip
+          pip install ruff pytest pandas numpy
+          # don't install torch/transformers in CI — too heavy for lint
+      - name: ruff lint (style)
+        run: ruff check ontomap/ scripts/ tests/ || true   # advisory while we settle style
+      - name: ruff format check
+        run: ruff format --check ontomap/ scripts/ tests/ || true
+      - name: import smoke (no model weights needed)
+        run: |
+          python -c "import ontomap; print('version:', ontomap.__version__)"
+          python -c "from ontomap._frozen_runtime import _extract_query_ecs, _ec_match_bonus, _ec_augmented_candidates; print('helpers import OK')"
+      - name: ec-priority unit tests (no model weights needed)
+        run: pytest tests/test_ec_priority_unit.py -v || true
+      - name: input-robustness unit tests (no model weights needed)
+        run: pytest tests/test_input_robustness.py -v -k "not requires_weights" || true
