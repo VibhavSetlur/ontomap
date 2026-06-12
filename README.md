@@ -1,10 +1,18 @@
 # ontomap
 
-**Frozen pipeline-3 ontology mapping for SSO / KO → ModelSEED reactions.** Self-contained, fully bundled, no LLM.
+**Frozen pipeline ontology mapping for SSO / KO → ModelSEED reactions.** Self-contained, fully bundled, no LLM.
 
 ```
-SapBERT-LoRA → multi-axis FAISS top-100 → MedCPT fused rerank → calibrated top-100
+SapBERT-LoRA → multi-axis FAISS top-100 → [optional --ec-augment]
+            → MedCPT fused rerank → +EC-priority bonus → calibrated top-100
 ```
+
+**Version**: 1.2.0 — see [CHANGELOG.md](CHANGELOG.md) for `v1.1.0` (EC-priority + 78 corpus EC patches) and `v1.2.0` (`--ec-augment` flag).
+
+**Benchmark** (Acidovorax 3H11 full dump, 8 588 unique descriptions, 1× H100): **39 ms/query mean, 25.3 qps, 100% hit@10 on Morgan-Price gold**.
+
+**Provenance**: 12 Research-OS experiments (steps 31–42) document why this is the best pipeline — see the parent project's `workspace/MASTER_SUMMARY.md`. Tested 11 reranker alternatives + 6 meta-ensembles + top-200 retrieval + 78 EC patches — none beats MedCPT at hit@20.
+
 
 - **Inputs:** three modes —
   - **SSO/KO id** (single flag or file of ids in CSV/TSV/JSON/JSONL/Parquet/TXT)
