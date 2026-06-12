@@ -1,0 +1,57 @@
+# Build + dist
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+
+# Bytecode + caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Local model weights — regenerated via SETUP_ASSETS.md
+weights/*.safetensors
+weights/sapbert/
+weights/medcpt/
+weights/lora/*/lora_adapter/
+# DO bundle these even in dev:
+!weights/MANIFEST.txt
+!weights/LICENSES.md
+!weights/README.md
+!weights/swept_weights.json
+!weights/isotonic_*.json
+!weights/lora/
+
+# Data symlinks — regenerated via SETUP_ASSETS.md
+data/dictionaries/*.json
+data/dictionaries/*.tsv
+data/embeddings/*.npz
+data/embeddings/*.npy
+data/modelseed_corpus/*
+data/modelseed/*
+data/splits/*.json
+!data/splits/*.example.json
+!data/splits/README.md
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
+
+# Bench output (regenerable)
+bench_output/

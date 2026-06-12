@@ -1,0 +1,102 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ontomap"
+version = "1.0.0"
+description = "Pipeline_3 frozen: SapBERT-LoRA + multi-axis FAISS + MedCPT fused rerank for SSO/KO → ModelSEED reaction mapping (no LLM, self-contained, shareable)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Vibhav A. Setlur", email = "vibhav.a.setlur@gmail.com" }]
+keywords = [
+  "bioinformatics",
+  "ontology-mapping",
+  "entity-linking",
+  "SapBERT",
+  "LoRA",
+  "MedCPT",
+  "ModelSEED",
+  "KEGG",
+  "RAST",
+  "SSO",
+  "KO",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.0",
+  "scipy>=1.11",
+  "tqdm>=4.66",
+  "pyyaml>=6.0",
+  "torch>=2.2",
+  "transformers>=4.45",
+  "sentence-transformers>=3.0",
+  "peft>=0.13",
+  "accelerate>=1.0",
+  "faiss-cpu>=1.8",
+  "huggingface_hub>=0.25",
+  "psutil>=5.9",
+  "pyarrow>=15",
+]
+
+[project.optional-dependencies]
+gpu = ["faiss-gpu>=1.7"]
+sssom = ["sssom>=0.4"]
+dev = ["pytest>=7", "pytest-cov", "ruff", "mypy"]
+bench = ["matplotlib>=3.7", "seaborn>=0.13"]
+
+[project.scripts]
+ontomap = "ontomap.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/VibhavSetlur/ontology-mapping"
+Issues = "https://github.com/VibhavSetlur/ontology-mapping/issues"
+Documentation = "https://github.com/VibhavSetlur/ontology-mapping/blob/main/ontomap/README.md"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ontomap*"]
+
+[tool.setuptools.package-data]
+ontomap = [
+  "weights/*.safetensors",
+  "weights/*.json",
+  "weights/*.txt",
+  "weights/lora/sso/*",
+  "weights/lora/ko/*",
+  "weights/medcpt/*",
+  "weights/sapbert/*",
+  "weights/swept_weights.json",
+  "weights/MANIFEST.txt",
+  "data/*.json",
+  "data/*.tsv",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+  "smoke: minimal end-to-end smoke tests (run in CI on every commit)",
+  "slow: tests that require model downloads or full pipeline runs",
+  "gpu: tests that require CUDA",
+]

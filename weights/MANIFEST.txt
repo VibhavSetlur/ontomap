@@ -1,0 +1,33 @@
+# ontomap bundled artifacts — SHA-256 manifest
+# Format: <sha256>  <bytes>  <relative-path>  [→ upstream-source]
+#
+# Verification (after a fresh `cp -RL ontomap/` or unzip):
+#   cd ontomap && python -m ontomap.info --verify-manifest
+#
+# Total files: 24
+# Total bytes: 1,290,925,431 (1231.1 MiB)
+
+879d18bf1b8ace1a0323e3505b0851511d98e1d9fdda98f921ffebc5a47d2e74          2,712  weights/README.md
+dec29157ed57774cd4ee4193dac2056a71cac416a410375475b6a9ef718ecc0a            352  weights/lora/ko/train_config.json  → workspace step 17 LoRA
+f9b3030f32a30e30f9118cc97502a81b1b97a00ad8eb4ff7f7e72362d21eebc3            381  weights/lora/ko/val_metrics.json  → workspace step 17 LoRA
+8f4862cd27ac0c664f4aa9c6a2563d6efeff34624b2b958ae5be4b65401b7798            353  weights/lora/sso/train_config.json  → workspace step 17 LoRA
+d8899e257b6f9716e7a3cf0fddb14ce27c3808f82e3ac066f5c298676a87312d            401  weights/lora/sso/val_metrics.json  → workspace step 17 LoRA
+1f375c7e8081f043c99fdb9c80059c44ed757cce7b05d333b7f3c81b1b713a42            741  weights/medcpt/config.json  → HF: /mnt/homes/vsetlur/.cache/huggingface/hub/models--ncbi--MedCPT-Cross-Encoder/blobs/766e5596630ebbdbe72b10cc777a95bb749f2bc0
+61d5ccd48869e03500544525fc231641d7daa9ba267b202c82724750038dc1e0    437,998,062  weights/medcpt/pytorch_model.bin  → HF: /mnt/homes/vsetlur/.cache/huggingface/hub/models--ncbi--MedCPT-Cross-Encoder/blobs/61d5ccd48869e03500544525fc231641d7daa9ba267b202c82724750038dc1e0
+cb63d0cbbf45160dc9cd786a257759593b798ae0c72957011016dbc3972df4e4            228  weights/medcpt/special_tokens_map.json  → HF: /mnt/homes/vsetlur/.cache/huggingface/hub/models--ncbi--MedCPT-Cross-Encoder/blobs/8e5082c800f715935ea0eb822faad62f4fac1ada
+6e046044df8a2fcedb10607075dca187cae61d806c0d80a96c5b81017edc90c9        706,277  weights/medcpt/tokenizer.json  → HF: /mnt/homes/vsetlur/.cache/huggingface/hub/models--ncbi--MedCPT-Cross-Encoder/blobs/e68fee3b6ebe7cc02f2b5f9753071bdf2c401ecf
+25e63abb25f637aa24981117b13394370693dd7bc140903d95008599b3abc1a9          1,556  weights/medcpt/tokenizer_config.json  → HF: /mnt/homes/vsetlur/.cache/huggingface/hub/models--ncbi--MedCPT-Cross-Encoder/blobs/85ae100df867ca6a1387ae02918eb02fdc03383e
+79489a52be45e6fa033521e8ce8e4f62aedc0a742ee2aa6fc04667e5b0b1454d        226,150  weights/medcpt/vocab.txt  → HF: /mnt/homes/vsetlur/.cache/huggingface/hub/models--ncbi--MedCPT-Cross-Encoder/blobs/9d595d9c20feef7012f174efaaa5eb621910588e
+c0fa35def52bf7d81865d23dba0417fdbb67d416fdde70cae5c7beab476b584e            462  weights/sapbert/config.json  → HF: /mnt/homes/vsetlur/.cache/huggingface/hub/models--cambridgeltl--SapBERT-from-PubMedBERT-fulltext/blobs/8342f3adf937298e71303d4b7e7a605689e5a844
+a4696930afef9aab296196d3d2142216c44cba24f21b4f285ceca7af21025614    437,955,508  weights/sapbert/model.safetensors  → HF: /mnt/homes/vsetlur/.cache/huggingface/hub/models--cambridgeltl--SapBERT-from-PubMedBERT-fulltext/blobs/a4696930afef9aab296196d3d2142216c44cba24f21b4f285ceca7af21025614
+303df45a03609e4ead04bc3dc1536d0ab19b5358db685b6f3da123d05ec200e3            112  weights/sapbert/special_tokens_map.json  → HF: /mnt/homes/vsetlur/.cache/huggingface/hub/models--cambridgeltl--SapBERT-from-PubMedBERT-fulltext/blobs/e7b0375001f109a6b8873d756ad4f7bbb15fbaa5
+76eb84b4b5b0d1bdba02906d7fae249be541c41d72e2024094aea513f98f2be7            198  weights/sapbert/tokenizer_config.json  → HF: /mnt/homes/vsetlur/.cache/huggingface/hub/models--cambridgeltl--SapBERT-from-PubMedBERT-fulltext/blobs/ced838ef749c8e8f92fb03d14a4e7e24bc71e207
+79489a52be45e6fa033521e8ce8e4f62aedc0a742ee2aa6fc04667e5b0b1454d        226,150  weights/sapbert/vocab.txt  → HF: /mnt/homes/vsetlur/.cache/huggingface/hub/models--cambridgeltl--SapBERT-from-PubMedBERT-fulltext/blobs/9d595d9c20feef7012f174efaaa5eb621910588e
+0626c5218b655625176523508a70151a5a867b3ad30ab8e96938d504c6fa3b1a          1,120  weights/swept_weights.json  → workspace step 01 swept weights
+781b4d60829a2f29b05d7521062287fdbfbf511028080ecf3c76bb78345b898b      4,070,469  data/dictionaries/KO_dictionary.json
+a925044342a471a7c514095e625306b733ce786dc926cffbe2afcdfa333d92a1      5,206,798  data/dictionaries/SSO_dictionary.json
+fa163c70b9dd03e4f05b8f0bb4533d17a8a68cf9a15a00d238648652c91f4b43        112,574  data/dictionaries/SSO_reactions.json
+716258ba560f51e43a37a7bfbb2ce8229197d206b4555b8799e6ea22b5b576f6        452,053  data/dictionaries/kegg_95_0_ko_seed.tsv
+5204e10686eb099b5160354eece2b807d47b6a1e3df5f824131a2d10b1d5e3d4     25,745,870  data/embeddings/ko_source_sapbert.npz  → project step 01 cached SapBERT embeddings
+b4ccfdf62183aaa1a824254d57dc3f634e77b06248ccde986f9000d58736a20b     11,103,214  data/embeddings/sso_source_sapbert.npz  → project step 01 cached SapBERT embeddings
+1fedd0643bf62ed3c56526537fd8fe7bbd3663c921d78f05470b4659e1931b69    367,113,690  data/embeddings/target_sapbert.npz  → project step 01 cached SapBERT embeddings
