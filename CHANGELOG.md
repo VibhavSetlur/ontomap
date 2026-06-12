@@ -5,6 +5,36 @@ All notable changes to ontomap are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.4.1] — 2026-06-12
+
+### Documentation (no code changes)
+- **New `EVALUATION.md`** — full metric taxonomy. Defines:
+  - TRUE GOLD vs SILVER vs OTHER-ANNOTATOR AGREEMENT vs NOVEL
+  - When `hit@K` is real accuracy vs when it's just agreement with another
+    annotator that may itself be wrong
+  - When to use `confidence_band` / `top1_margin` / `fused_score`
+    (answer: always for inputs with no gold — which is the common case)
+  - A suggested reporting template so quoted numbers always carry their
+    test-set type label
+- **README.md** rewritten with the input-shape examples up top, then a
+  "what the output means" section pointing at EVALUATION.md, then
+  separate benchmark tables for TRUE GOLD vs SILVER agreement.
+- **DATA.md** prefaced with a pointer to EVALUATION.md and a one-paragraph
+  summary distinguishing training data from evaluation data.
+- **Parent workspace `MASTER_SUMMARY.md`** rewritten with explicit
+  gold/silver/agreement/novel framing, separating the 31-gene true-gold
+  results (100% hit@10) from the 600-gene silver-agreement results (92%
+  hit@10) from the 8 588-input production-readiness signals (coverage,
+  confidence band distribution, latency).
+- **Step 39 `conclusions.md`** rewritten similarly.
+
+### Why the patch
+Earlier docs quoted `hit@K` numbers without distinguishing the kind of
+test set, which made the 8 588-input numbers look like accuracy when
+they're actually a mix of true-gold accuracy + silver agreement +
+tool-vs-tool similarity. This patch makes every quoted number carry
+its test-set type label.
+
 ## [1.4.0] — 2026-06-12
 
 ### Added

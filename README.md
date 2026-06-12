@@ -4,14 +4,61 @@
 
 ```
 SapBERT-LoRA → multi-axis FAISS top-100 → [optional --ec-augment]
-            → MedCPT fused rerank → +EC-priority bonus → calibrated top-100
+            → MedCPT fused rerank → +EC-priority bonus → calibrated top-K
 ```
 
-**Version**: 1.2.0 — see [CHANGELOG.md](CHANGELOG.md) for `v1.1.0` (EC-priority + 78 corpus EC patches) and `v1.2.0` (`--ec-augment` flag).
+**Version**: 1.4.0 — see [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
-**Benchmark** (Acidovorax 3H11 full dump, 8 588 unique descriptions, 1× H100): **39 ms/query mean, 25.3 qps, 100% hit@10 on Morgan-Price gold**.
+## Inputs accepted (verified v1.4.0)
 
-**Provenance**: 12 Research-OS experiments (steps 31–42) document why this is the best pipeline — see the parent project's `workspace/MASTER_SUMMARY.md`. Tested 11 reranker alternatives + 6 meta-ensembles + top-200 retrieval + 78 EC patches — none beats MedCPT at hit@20.
+```python
+from ontomap import Pipeline
+pipe = Pipeline.from_pretrained(direction="sso")
+
+pipe.map(name="Aldehyde dehydrogenase", ec="1.2.1.3")    # name + EC
+pipe.map(name="Aldehyde dehydrogenase")                   # name only
+pipe.map(ec="1.2.1.3")                                    # EC only
+pipe.map(name="...", ec="...", tags=["putative","partial"])  # with tags
+pipe.map(name="...", ec="...", notes="from Acidovorax 3H11") # with notes
+```
+
+```bash
+ontomap map --name "Aldehyde dehydrogenase" --ec 1.2.1.3
+ontomap map --ec 1.2.1.3                                    # EC alone
+ontomap map --text "Aldehyde dehydrogenase (EC 1.2.1.3)"   # legacy text form
+ontomap map --sso SSO:000000027                            # SSO id
+ontomap map --input ids.csv --direction sso                # batch
+```
+
+## What the output means (READ before quoting any number)
+
+Per prediction (v1.3.0+), `MapResult.reaction_meta[rxn_id]` includes:
+- `ec_match_level` ∈ {0,1,2} — no / prefix / exact EC match with query
+- `confidence_band` (top-1 only) ∈ {high, medium, low}
+- `top1_margin` (top-1 only) — `fused_score(rank=1) − fused_score(rank=2)`
+
+For inputs WITH a true gold standard → `hit@K` is real accuracy.
+For inputs WITHOUT a gold (most real user data) → use `confidence_band`
++ `fused_score`. **See [EVALUATION.md](EVALUATION.md) for the full metric
+taxonomy: gold vs silver vs other-annotator agreement vs novel.**
+
+## Benchmarks (1× H100 NVL)
+
+| eval set | type | n | hit@10 | mean latency |
+|----------|------|---|--------|---------------|
+| Morgan-Price gold | **TRUE GOLD** | 31 | **100%** | 39 ms/q |
+| RAST silvers (multi-gold) | SILVER agreement | 600 | 92.0% | 39 ms/q |
+| Full Acidovorax 3H11 dump | mixed + novel | 8 588 | n/a (most are novel) | 39 ms/q, 25.3 qps |
+
+→ All user targets (top-1=70%, top-10=93%, top-50=100%) met on the
+only true gold available. Silver-set gaps reflect both ontomap and
+silver-label uncertainty (RAST over-propagates via EC class).
+
+**Provenance**: 12 Research-OS experiments (steps 31–42) document why
+this is the best pipeline — see the parent project's
+`workspace/MASTER_SUMMARY.md`. Tested 11 reranker alternatives + 6
+meta-ensembles + top-200 retrieval + 78 EC patches — none beats MedCPT
+at hit@20.
 
 
 - **Inputs:** three modes —

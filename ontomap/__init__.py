@@ -34,7 +34,7 @@ CLI:
     ontomap bench --tiers 10,100,1000
 """
 
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 
 from ontomap.pipeline import Pipeline, MapResult, PipelineConfig  # noqa: F401, E402
 from ontomap.aggregate import aggregate_annotation_tsv  # noqa: F401, E402

@@ -7,6 +7,19 @@ This document describes the data used to train the LoRA adapters bundled at
 preserved under
 `/scratch/vsetlur/ontology-mapping/workspace/17_sapbert_lora/scripts/`.
 
+> **For EVALUATION data** (what was used to *test* ontomap rather than train
+> it) and what `hit@K` means for inputs without a gold standard, see
+> [`EVALUATION.md`](EVALUATION.md). The short version:
+> - The only **true gold** in the campaign was `gold_curated_morgan_price`
+>   (31 human-curated genes from Henry's Acidovorax 3H11 dump).
+> - "RAST silver" sources (~743 genes/source) are useful but they're
+>   automated annotations, not curation.
+> - Other-annotator sources (prokka, glm4ec, kofamscan, ...) are
+>   tool-vs-tool agreement, NOT accuracy.
+> - The bulk of the 8 588 free-text inputs from the dump are **novel** —
+>   they have no gold at all. For those, use `confidence_band` from the
+>   `MapResult.reaction_meta` field, NOT `hit@K`.
+
 For redistribution, licenses, and SHA-256 manifests of bundled artifacts see
 [`weights/LICENSES.md`](weights/LICENSES.md) and
 [`weights/MANIFEST.txt`](weights/MANIFEST.txt).
