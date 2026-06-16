@@ -26,6 +26,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   research workspace (step 49) with a README reporting RAM/query, queries/sec,
   and total runtime — ready to hand to a downstream pipeline.
 
+### Tooling & onboarding
+- **CLI `ontomap map-model`** — run model mapping end-to-end without writing
+  Python: `ontomap map-model --model M.json --output mapping.sqlite` (or
+  `--format json`).
+- **`CLAUDE.md`** at the repo root — a setup-and-run runbook so a new user can
+  clone the repo and let Claude Code bootstrap + run it.
+- **`scripts/setup.sh`** rewritten to fetch the public assets for model mapping
+  (SapBERT + ModelSEED tables) and verify, with the reaction-pipeline assets as
+  a clearly-flagged optional step.
+- **README** rewritten around the two capabilities; **INSTALL.md** /
+  **SETUP_ASSETS.md** updated for a fresh-clone, model-mapping-first flow.
+- Version unified at **1.5.1** across `pyproject.toml` + `__init__`.
+
 ## [1.5.0] — 2026-06-16
 
 ### Added — compound & reaction mapping for whole metabolic models (`ontomap.modelmap`)

@@ -71,6 +71,6 @@ This takes ~30 s on an H100.
 
 ```bash
 ontomap info     # prints all asset paths + checksums
-ontomap version  # 1.1.0
+ontomap version  # 1.5.1
 ontomap map --text "Enoyl-CoA hydratase (EC 4.2.1.17)"
 ```

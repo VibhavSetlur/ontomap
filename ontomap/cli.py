@@ -1,7 +1,9 @@
 """ontomap CLI — `ontomap` console-script entry-point.
 
 Subcommands:
-    map            map SSO/KO ids → ModelSEED reactions (single or batch)
+    map            map SSO/KO ids OR free-text → ModelSEED reactions (single or batch)
+    map-model      map a whole model's compounds + reactions → ModelSEED (rich SQLite)
+    aggregate-tsv  dedup a multi-source annotation TSV into an ontomap-ready file
     bench          reproducible scaling benchmark (latency / RAM / VRAM at multiple N)
     fetch-models   pre-download all required model weights
     info           print version + weight pins + device + memory + smoke-test
@@ -125,6 +127,44 @@ def cmd_map(args: argparse.Namespace) -> int:
         # stdout: one JSON object per query
         for r in results:
             print(json.dumps(r.to_dict()))
+    return 0
+
+
+def cmd_map_model(args: argparse.Namespace) -> int:
+    """Map a whole foreign-namespace metabolic model's compounds + reactions to ModelSEED.
+
+    Writes a rich, self-contained SQLite DB (default) or a raw JSON of the
+    top-k predictions. ModelSEED data is resolved from --modelseed-dir →
+    $ONTOMAP_MODELSEED → bundled data/modelseed (see SETUP_ASSETS.md).
+    """
+    out = args.output
+    fmt = args.format
+    if fmt is None:
+        fmt = "sqlite" if str(out).lower().endswith((".sqlite", ".db", ".sqlite3")) else "json"
+
+    if fmt == "sqlite":
+        from ontomap.modelmap import map_model_to_sqlite
+        path = map_model_to_sqlite(
+            args.model, modelseed_dir=args.modelseed_dir, path=out,
+            device=args.device, top_k=args.top_k, network=not args.no_network,
+            run_metadata={"source": "ontomap map-model CLI"},
+        )
+        if not args.quiet:
+            print(f"wrote rich SQLite mapping → {path}", file=sys.stderr)
+    else:
+        from ontomap.modelmap import map_model
+        res = map_model(args.model, modelseed_dir=args.modelseed_dir,
+                        device=args.device, top_k=args.top_k, network=not args.no_network)
+        ser = {kind: {q: [{"rank": i + 1, "id": c, "score": s, "signals": sig}
+                          for i, (c, s, sig) in enumerate(v)]
+                      for q, v in res[kind].items()}
+               for kind in ("compounds", "reactions")}
+        if out:
+            Path(out).write_text(json.dumps(ser, indent=2))
+            if not args.quiet:
+                print(f"wrote {out}", file=sys.stderr)
+        else:
+            print(json.dumps(ser))
     return 0
 
 
@@ -339,6 +379,28 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--ontology-column", default="ontology_term")
     a.add_argument("--reactions-column", default="reactions")
     a.set_defaults(func=cmd_aggregate_tsv)
+
+    # ---- map-model ----
+    mm = sub.add_parser(
+        "map-model",
+        help="map a whole metabolic model's compounds + reactions to ModelSEED "
+             "(writes a rich, self-contained SQLite DB)",
+    )
+    mm.add_argument("--model", required=True,
+                    help="COBRA-style model JSON with metabolites[] + reactions[]")
+    mm.add_argument("--output", "-o", default="model_mapping.sqlite",
+                    help="output path: .sqlite/.db → rich DB (default); .json → raw top-k")
+    mm.add_argument("--format", "-f", choices=["sqlite", "json"], default=None,
+                    help="auto-detected from --output extension if omitted")
+    mm.add_argument("--modelseed-dir", default=None,
+                    help="dir with compounds.tsv + reactions.tsv "
+                         "(default: $ONTOMAP_MODELSEED or bundled data/modelseed)")
+    mm.add_argument("--top-k", "-k", type=int, default=10, help="candidates per query (default 10)")
+    mm.add_argument("--device", default="auto", help="cuda | cpu | auto (default auto)")
+    mm.add_argument("--no-network", action="store_true",
+                    help="disable the reaction-network compound rerank (faster, ~lower compound hit@1)")
+    mm.add_argument("--quiet", "-q", action="store_true")
+    mm.set_defaults(func=cmd_map_model)
 
     # ---- bench ----
     b = sub.add_parser("bench", help="reproducible scaling benchmark (latency / RAM / VRAM at multiple N)")

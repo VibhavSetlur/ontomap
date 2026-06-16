@@ -1,15 +1,22 @@
 # Installing `ontomap`
 
-## TL;DR
+## TL;DR (fresh clone)
 
 ```bash
-cd ontomap
-pip install -e .                         # editable install
-ontomap info                              # confirms bundle is intact + tests imports
-ontomap map --sso SSO:000000027 --top-k 5 # real query, real output
+git clone https://github.com/VibhavSetlur/ontomap.git && cd ontomap
+pip install -e .                          # editable install
+bash scripts/setup.sh                     # fetch public assets: SapBERT + ModelSEED tables
+ontomap version                           # 1.5.1
+ontomap map-model --model your_model.json --output mapping.sqlite   # capability 1
 ```
 
-That's it — **everything else is bundled**. No `fetch-models`, no HuggingFace download, no separate dataset fetch.
+This enables **capability 1 (model mapping)** from public assets only.
+Letting **Claude Code** drive setup? See [`CLAUDE.md`](CLAUDE.md).
+
+> Capability 2 (the SSO/KO/RAST → reaction `Pipeline`) additionally needs the
+> LoRA adapters + SSO/KO dictionaries + cached embeddings, which are **not in
+> the public repo** — see [`SETUP_ASSETS.md`](SETUP_ASSETS.md). The model
+> mapping in capability 1 does **not** need them.
 
 ## Requirements
 

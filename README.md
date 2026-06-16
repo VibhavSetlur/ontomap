@@ -1,15 +1,53 @@
 # ontomap
 
-**Frozen pipeline ontology mapping for SSO / KO → ModelSEED reactions.** Self-contained, fully bundled, no LLM.
+**Ontology mapping for metabolic modeling — onto ModelSEED. Self-contained, no LLM at runtime.**
+
+**Version**: 1.5.1 — see [CHANGELOG.md](CHANGELOG.md). New to the repo? Hand it to
+Claude Code — [`CLAUDE.md`](CLAUDE.md) is a complete setup-and-run runbook.
+
+ontomap has **two capabilities**:
+
+| | what | input | output | assets |
+|---|---|---|---|---|
+| **1. Model mapping** (`ontomap.modelmap`, v1.5+) | line up a whole published model's **compounds + reactions** with ModelSEED | a metabolic model (COBRA JSON) | ModelSEED **compound & reaction** ids (rich SQLite) | public (SapBERT + ModelSEED tables) — **runs from a clone** |
+| **2. Annotation → reaction** (`ontomap.Pipeline`, 1.x core) | map a gene's **function** to ModelSEED reactions | SSO/KO id or free text | ModelSEED **reactions** | + LoRA adapters & SSO/KO dictionaries (not public) |
 
 ```
-SapBERT-LoRA → multi-axis FAISS top-100 → [optional --ec-augment]
-            → MedCPT fused rerank → +EC-priority bonus → calibrated top-K
+Model mapping (1): SapBERT synonym embedding + exact index + reaction-network rerank (compounds)
+                   SapBERT name embedding + stoichiometric compound-set overlap (reactions, active corpus)
+Reaction pipeline (2): SapBERT-LoRA → multi-axis FAISS top-100 → MedCPT fused rerank → +EC-priority → top-K
 ```
 
-**Version**: 1.4.0 — see [CHANGELOG.md](CHANGELOG.md) for the full release history.
+## 60-second start (model mapping)
 
-## Inputs accepted (verified v1.4.0)
+```bash
+git clone https://github.com/VibhavSetlur/ontomap.git && cd ontomap
+pip install -e .
+bash scripts/setup.sh          # fetch SapBERT + ModelSEED tables (public, idempotent)
+ontomap map-model --model your_model.json --output mapping.sqlite
+```
+```python
+from ontomap import map_model_to_sqlite
+map_model_to_sqlite("your_model.json", path="mapping.sqlite", top_k=10)
+```
+The DB is **self-contained** (denormalized ModelSEED metadata) — query it directly:
+```sql
+SELECT * FROM compound_top_n WHERE rank = 1;   -- best compound call per metabolite
+SELECT * FROM reaction_top_n WHERE rank = 1;   -- best reaction call per reaction
+```
+Full method, schema, accuracy, and limitations: [`docs/COMPOUND_REACTION_MAPPING.md`](docs/COMPOUND_REACTION_MAPPING.md).
+
+### Model-mapping accuracy (held-out silver gold, A. baylyi/ADP1; names + network only)
+| entity | n | hit@1 | hit@5 | hit@10 | throughput |
+|--------|---|-------|-------|--------|-----------|
+| compounds | 694 | 0.934 | 0.996 | 0.996 | 220 q/s |
+| reactions | 850 | 0.818 | 0.956 | 0.966 | 123 q/s |
+
+---
+
+Everything below documents **capability 2** (the SSO/KO/RAST → reaction pipeline).
+
+## Inputs accepted (capability 2 — reaction pipeline)
 
 ```python
 from ontomap import Pipeline
@@ -132,6 +170,7 @@ python examples/quickstart.py   # programmatic equivalent
 
 ```
 ontomap map               map SSO/KO id(s) OR free-text description(s) to top-k ModelSEED reactions
+ontomap map-model         map a whole model's compounds + reactions to ModelSEED (rich SQLite) [v1.5+]
 ontomap aggregate-tsv     aggregate a multi-source annotation TSV (RAST/BAKTA/dram/glm4ec dump shape) into an ontomap-ready descriptions file (+ JSONL provenance sidecar)
 ontomap bench             reproducible scaling benchmark (latency / RAM / VRAM at multiple N)
 ontomap info              version + weight pins + device + bundle status + smoke-test
