@@ -5,6 +5,64 @@ All notable changes to ontomap are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.1] — 2026-06-16
+
+### Added — rich SQLite export for model mappings
+- **`map_model_to_sqlite(model_json, modelseed_dir=None, path=...)`** and the
+  lower-level **`write_sqlite(path, payload)`** (exported as
+  `map_model_to_sqlite` / `write_model_sqlite`) — serialize a whole-model
+  compound + reaction mapping to a **self-contained** SQLite DB: 8 tables
+  (`compound_queries`/`compound_predictions`/`compound_targets`,
+  `reaction_queries`/`reaction_predictions`/`reaction_targets`, `performance`,
+  `run_metadata`) + 2 join views (`compound_top_n`, `reaction_top_n`).
+  ModelSEED target metadata (formula/charge/InChIKey; EC/pathway/status) is
+  denormalized so the DB needs no external files to consume.
+- **Robust ModelSEED-data resolution**: `modelseed_dir` is now optional on
+  `load_compounds`/`load_reactions`/`from_modelseed`/`map_model`/
+  `map_model_to_sqlite` — resolves explicit arg → `$ONTOMAP_MODELSEED` →
+  bundled `data/modelseed/` (file-relative fallback). `SETUP_ASSETS.md`
+  documents fetching `compounds.tsv` + `reactions.tsv`.
+- A benchmarked, gold-scored DB for the published ADP1 model ships in the
+  research workspace (step 49) with a README reporting RAM/query, queries/sec,
+  and total runtime — ready to hand to a downstream pipeline.
+
+## [1.5.0] — 2026-06-16
+
+### Added — compound & reaction mapping for whole metabolic models (`ontomap.modelmap`)
+A second capability, **additive** to the existing annotation→reaction
+`Pipeline`: map the metabolites and reactions of an existing
+foreign-namespace metabolic model onto ModelSEED compound **and** reaction
+ids. Motivated by Christopher Henry's request to integrate published
+models (e.g. an *A. baylyi*/ADP1 reconstruction) whose namespaces don't
+match ModelSEED.
+
+- **`CompoundMapper`** — SapBERT multi-synonym embedding + exact
+  normalized-synonym index + reaction-network consistency rerank.
+- **`ReactionMapper`** — SapBERT reaction-name embedding ∪ stoichiometric
+  compound-set overlap (over the ACTIVE corpus, with a canonicality prior).
+- **`map_model(model_json, modelseed_dir)`** — one-call whole-model
+  mapping (compounds first, reactions reuse them).
+- New public exports: `CompoundMapper`, `ReactionMapper`, `map_model`.
+- New docs: `docs/COMPOUND_REACTION_MAPPING.md` (results, data
+  limitations, I/O, figures); example `examples/06_map_published_model.py`.
+
+### Validation (held-out gold on published ADP1 model, names + network only)
+- Compounds: **hit@1 0.934, hit@10 0.996** (n=694); the network rerank is
+  a +5.6 pp hit@1 lift; redundancy-aware hit@1 0.944.
+- Reactions: **hit@1 0.818, hit@10 0.965** (n=850); restricting the target
+  to ACTIVE reactions is decisive (else strict hit@1 collapses to 0.52
+  on obsolete duplicates); compound→reaction cascade cost only ~4.6 pp.
+
+### Diagnostic — ModelSEED internal redundancy
+- Compounds: 1,691 InChIKey-skeleton duplicate clusters (2,611 redundant
+  ids, 10.8%); reactions: 335 exact-stoichiometry duplicate clusters
+  (1.09%). Reusable de-duplication maps emitted.
+
+### Notes
+- The MedCPT cross-encoder is intentionally **not** used by `modelmap` —
+  as a name-only reranker it degrades both tasks (it remains in the
+  reaction annotation `Pipeline` where it is validated).
+
 ## [1.4.1] — 2026-06-12
 
 ### Documentation (no code changes)

@@ -36,6 +36,18 @@ curl -L -o data/modelseed_corpus/compounds.tsv \
 SSO / KO dictionaries are derived from KBase + KEGG; pre-built copies are
 shipped via the project's `inputs/raw_data/` folder (request access).
 
+**For `ontomap.modelmap`** (compound/reaction model mapping, 1.5+), put the
+same two TSVs under `data/modelseed/` (the location its resolver checks):
+
+```bash
+mkdir -p data/modelseed
+ln -sf "$PWD/data/modelseed_corpus/compounds.tsv" data/modelseed/compounds.tsv
+ln -sf "$PWD/data/modelseed_corpus/reactions.tsv" data/modelseed/reactions.tsv
+```
+
+Then `map_model_to_sqlite(model_json)` works with no `modelseed_dir=` arg
+(resolution order: explicit arg → `$ONTOMAP_MODELSEED` → `data/modelseed/`).
+
 ## 3. LoRA adapters
 
 The trained LoRA adapters (~6 split-pairs × ~16 MB) live in the project

@@ -32,9 +32,22 @@ CLI:
     ontomap aggregate-tsv -i raw_dump.tsv -o clean_descriptions.tsv \\
                           --provenance clean_descriptions.provenance.jsonl
     ontomap bench --tiers 10,100,1000
+
+v1.5.0 — Compound & Reaction mapping for whole models (NEW, additive):
+    Map the metabolites and reactions of an existing foreign-namespace
+    metabolic model onto ModelSEED ids.
+
+        from ontomap import CompoundMapper, ReactionMapper, map_model
+        out = map_model(model_json, modelseed_dir="data/raw/modelseed")
+        out["compounds"]["CPD_DASH_205_Cytosol"]   # ranked cpd ids
+        out["reactions"]["rxn12357_c0"]            # ranked rxn ids
+
+    See ontomap/docs/COMPOUND_REACTION_MAPPING.md for the validation
+    study (held-out gold on a published A. baylyi/ADP1 model), data
+    limitations, results, and figures.
 """
 
-__version__ = "1.4.1"
+__version__ = "1.5.1"
 
 from ontomap.pipeline import Pipeline, MapResult, PipelineConfig  # noqa: F401, E402
 from ontomap.aggregate import aggregate_annotation_tsv  # noqa: F401, E402
@@ -44,11 +57,22 @@ from ontomap.confidence_v2 import (  # noqa: F401, E402
     recalibrate_predictions,
     confidence_to_predicate_v2,
 )
+# v1.5.0 — compound & reaction mapping for whole metabolic models
+# (added alongside the reaction Pipeline; see docs/COMPOUND_REACTION_MAPPING.md).
+from ontomap.modelmap import (  # noqa: F401, E402
+    CompoundMapper,
+    ReactionMapper,
+    map_model,
+    map_model_to_sqlite,
+    write_sqlite as write_model_sqlite,
+)
 
 __all__ = [
     "Pipeline", "MapResult", "PipelineConfig",
     "aggregate_annotation_tsv",
     "write_sqlite", "write_annotated_sqlite",
     "recalibrate_one", "recalibrate_predictions", "confidence_to_predicate_v2",
+    "CompoundMapper", "ReactionMapper", "map_model",
+    "map_model_to_sqlite", "write_model_sqlite",
     "__version__",
 ]
