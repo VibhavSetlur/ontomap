@@ -5,6 +5,25 @@ All notable changes to ontomap are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.2] — 2026-06-17
+
+### Fixed — model mapping now returns top-100 per query (was top-10)
+- **`map_model` and `map_model_to_sqlite` defaulted to `top_k=10`** but the
+  model→ModelSEED deliverable is specified as **top-100 candidates per query**.
+  Both defaults are now **`top_k=100`**, and the `ontomap map-model` CLI
+  `--top-k` default is bumped to match (`10 → 100`).
+- **Retrieval depth now scales with `top_k`** so 100 is genuinely returnable,
+  not silently truncated by the candidate pool: `CompoundMapper.map_many`
+  retrieves `max(n_retrieve, top_k*4)` synonym vectors (dedup to unique cpd ids)
+  and `ReactionMapper.map_many` retrieves `max(n_name, top_k*3)` name vectors
+  before the (name ∪ compound-set) union. Behavior is unchanged for `top_k ≤ 50`
+  (the prior pool already covered small k); only deep-ranking paths retrieve more.
+- The annotation→reaction pipeline (capability 2, `ontomap map` / `Pipeline`)
+  is unaffected — its `--top-k` default stays `10`.
+- The benchmarked, gold-scored ADP1 deliverable (research workspace step 49) is
+  regenerated at top-100 (compound/reaction `predictions` tables now hold up to
+  100 ranks per query; the flat JSONL export is renamed `…_top100.jsonl`).
+
 ## [1.5.1] — 2026-06-16
 
 ### Added — rich SQLite export for model mappings

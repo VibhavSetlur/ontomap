@@ -395,7 +395,7 @@ def build_parser() -> argparse.ArgumentParser:
     mm.add_argument("--modelseed-dir", default=None,
                     help="dir with compounds.tsv + reactions.tsv "
                          "(default: $ONTOMAP_MODELSEED or bundled data/modelseed)")
-    mm.add_argument("--top-k", "-k", type=int, default=10, help="candidates per query (default 10)")
+    mm.add_argument("--top-k", "-k", type=int, default=100, help="candidates per query (default 100)")
     mm.add_argument("--device", default="auto", help="cuda | cpu | auto (default auto)")
     mm.add_argument("--no-network", action="store_true",
                     help="disable the reaction-network compound rerank (faster, ~lower compound hit@1)")

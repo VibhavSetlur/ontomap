@@ -28,7 +28,7 @@ ontomap map-model --model your_model.json --output mapping.sqlite
 ```
 ```python
 from ontomap import map_model_to_sqlite
-map_model_to_sqlite("your_model.json", path="mapping.sqlite", top_k=10)
+map_model_to_sqlite("your_model.json", path="mapping.sqlite")   # top-100 candidates per query (default)
 ```
 The DB is **self-contained** (denormalized ModelSEED metadata) — query it directly:
 ```sql

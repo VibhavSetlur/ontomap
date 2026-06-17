@@ -38,7 +38,7 @@ Input is a COBRA-style JSON: `{"metabolites":[{"id","name",...}],
 "reactions":[{"id","name","metabolites":{met_id:coef}}]}`.
 
 ```bash
-# CLI → rich, self-contained SQLite (compounds + reactions, top-10, scores,
+# CLI → rich, self-contained SQLite (compounds + reactions, top-100, scores,
 # denormalized ModelSEED metadata, performance, run_metadata, + join views)
 ontomap map-model --model your_model.json --output mapping.sqlite
 
@@ -48,7 +48,7 @@ ontomap map-model --model your_model.json --output mapping.json --format json
 ```python
 from ontomap import CompoundMapper, ReactionMapper, map_model, map_model_to_sqlite
 CompoundMapper.from_modelseed().build().map("pimelate")[0]   # -> ('cpd01727', score, signals)
-map_model_to_sqlite("your_model.json", path="mapping.sqlite", top_k=10)
+map_model_to_sqlite("your_model.json", path="mapping.sqlite")   # top_k=100 per query by default
 ```
 Inspect the DB: `sqlite3 mapping.sqlite "SELECT * FROM compound_top_n WHERE rank=1 LIMIT 5;"`
 (views: `compound_top_n`, `reaction_top_n`). Full schema + accuracy +

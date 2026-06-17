@@ -31,7 +31,7 @@ def main():
     model = json.loads(Path(model_path).read_text())
     print(f"mapping {len(model['metabolites'])} metabolites + "
           f"{len(model['reactions'])} reactions to ModelSEED ...")
-    out = map_model(model, modelseed_dir=modelseed_dir, top_k=10)
+    out = map_model(model, modelseed_dir=modelseed_dir)   # top_k=100 candidates per query (default)
 
     with (out_dir / "compound_map.tsv").open("w", newline="") as f:
         w = csv.writer(f, delimiter="\t")

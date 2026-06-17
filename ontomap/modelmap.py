@@ -301,7 +301,10 @@ class CompoundMapper:
         if not self._built:
             self.build()
         q = self.enc.encode(names)
-        sims, idx = _faiss_topk(q, self.syn_emb, min(n_retrieve, len(self.syn_emb)))
+        # retrieve enough synonym vectors that, after dedup to unique cpd ids,
+        # the candidate pool comfortably exceeds top_k (each cpd has many synonyms)
+        k_ret = min(max(n_retrieve, top_k * 4), len(self.syn_emb))
+        sims, idx = _faiss_topk(q, self.syn_emb, k_ret)
         out = []
         for qi, name in enumerate(names):
             cid_sim = {}
@@ -442,7 +445,9 @@ class ReactionMapper:
         if not self._built:
             self.build()
         q = self.enc.encode(names)
-        sims, idx = _faiss_topk(q, self.syn_emb, min(n_name, len(self.syn_emb)))
+        # scale name retrieval with top_k so the (name ∪ compound-set) pool can fill top_k
+        k_name = min(max(n_name, top_k * 3), len(self.syn_emb))
+        sims, idx = _faiss_topk(q, self.syn_emb, k_name)
         out = []
         for qi in range(len(names)):
             name_sim = {}
@@ -481,7 +486,7 @@ class ReactionMapper:
 # Whole-model convenience
 # --------------------------------------------------------------------------
 def map_model(model_json, modelseed_dir=None, device="auto", weights_dir=None,
-              top_k=10, network=True):
+              top_k=100, network=True):
     """Map every metabolite and reaction of a COBRA-style model dict to ModelSEED.
 
     model_json: dict with 'metabolites' [{id,name,...}] and
@@ -697,7 +702,7 @@ def _rxn_target_meta(r: ReactionRec) -> dict:
 
 
 def map_model_to_sqlite(model_json, modelseed_dir=None, path="model_mapping.sqlite", *, device="auto",
-                        weights_dir=None, top_k=10, network=True,
+                        weights_dir=None, top_k=100, network=True,
                         run_metadata=None):
     """Map a whole model and write a rich, self-contained SQLite DB in one call.
 

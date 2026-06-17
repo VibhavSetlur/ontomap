@@ -47,7 +47,7 @@ v1.5.0 — Compound & Reaction mapping for whole models (NEW, additive):
     limitations, results, and figures.
 """
 
-__version__ = "1.5.1"
+__version__ = "1.5.2"
 
 from ontomap.pipeline import Pipeline, MapResult, PipelineConfig  # noqa: F401, E402
 from ontomap.aggregate import aggregate_annotation_tsv  # noqa: F401, E402

@@ -233,7 +233,7 @@ cm.map("pimelate")[0]            # -> ('cpd01727', 2.0, {'emb':1.0,'exact':1})
 
 # a whole model in one call (compounds first, then reactions using them)
 model = json.load(open("PublishedModel.json"))
-out = map_model(model, modelseed_dir="data/raw/modelseed", top_k=10)
+out = map_model(model, modelseed_dir="data/raw/modelseed")   # top_k=100 per query (default)
 out["compounds"]["CPD_DASH_205_Cytosol"][0]   # best ModelSEED cpd id
 out["reactions"]["rxn12357_c0"][0]            # best ModelSEED rxn id
 ```
@@ -243,8 +243,8 @@ writes a per-entity TSV with confidence signals.
 
 ### Rich SQLite export (shareable, self-contained)
 ```python
-from ontomap import map_model_to_sqlite     # ontomap >= 1.5.1
-map_model_to_sqlite(model_json, path="adp1_modelseed_mapping.sqlite", top_k=10)
+from ontomap import map_model_to_sqlite     # ontomap >= 1.5.2
+map_model_to_sqlite(model_json, path="adp1_modelseed_mapping.sqlite")   # top-100 per query (default)
 ```
 Writes 8 tables (`compound_queries`/`compound_predictions`/`compound_targets`,
 `reaction_queries`/`reaction_predictions`/`reaction_targets`, `performance`,
