@@ -1,1 +1,10 @@
-/scratch/vsetlur/ontology-mapping/workspace/17_sapbert_lora/outputs/adapters/sapbert-lora-ko-splitC/val_metrics.json
+{
+  "val_ko_cosine_accuracy@1": 0.6201298701298701,
+  "val_ko_cosine_accuracy@5": 0.7402597402597403,
+  "val_ko_cosine_accuracy@10": 0.75,
+  "val_ko_cosine_precision@10": 0.17077922077922078,
+  "val_ko_cosine_recall@10": 0.6649361672312859,
+  "val_ko_cosine_ndcg@10": 0.6335393326155303,
+  "val_ko_cosine_mrr@10": 0.6660984848484849,
+  "val_ko_cosine_map@100": 0.5992576320492234
+}

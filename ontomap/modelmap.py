@@ -686,6 +686,17 @@ def write_sqlite(path, payload: dict) -> str:
         conn.commit()
     finally:
         conn.close()
+    try:
+        from ontomap.io import write_sqlite_readme
+
+        rm = payload.get("run_metadata") or {}
+        write_sqlite_readme(
+            Path(path),
+            pipeline_version=str(rm.get("pipeline_version") or rm.get("ontomap_version") or ""),
+            kind="model",
+        )
+    except Exception:
+        pass
     return path
 
 

@@ -24,7 +24,7 @@ pip install -e .
 # 3. Fetch public assets (SapBERT weights + ModelSEED tables) — idempotent
 bash scripts/setup.sh
 # 4. Confirm
-ontomap version        # 1.5.1
+ontomap version        # 1.6.0
 ontomap info           # device + bundle status + smoke test
 ```
 - **GPU optional**: any NVIDIA GPU ≥8 GB makes it ~10× faster; CPU works.
@@ -85,4 +85,4 @@ otherwise prefer capability 1.
 - `docs/COMPOUND_REACTION_MAPPING.md` — model mapping: method, results, schema, limitations
 - `docs/VALIDATION.md` / `docs/BENCHMARK.md` — reaction pipeline accuracy + scaling
 - `SETUP_ASSETS.md` / `INSTALL.md` — assets + install
-- `CHANGELOG.md` — release history (current: 1.5.1)
+- `CHANGELOG.md` — release history (current: 1.6.0)

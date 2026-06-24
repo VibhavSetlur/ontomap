@@ -1,1 +1,21 @@
-/scratch/vsetlur/ontology-mapping/workspace/17_sapbert_lora/outputs/adapters/sapbert-lora-sso-splitC/train_config.json
+{
+  "direction": "sso",
+  "split": "C",
+  "epochs": 3,
+  "batch_size": 64,
+  "lr": 2e-05,
+  "seed": 17,
+  "base_model": "cambridgeltl/SapBERT-from-PubMedBERT-fulltext",
+  "lora": {
+    "r": 16,
+    "alpha": 32,
+    "target_modules": [
+      "query",
+      "key",
+      "value",
+      "dense"
+    ]
+  },
+  "n_train_primary": 2834,
+  "n_train_aux": 1923
+}

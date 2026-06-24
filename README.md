@@ -2,7 +2,7 @@
 
 **Ontology mapping for metabolic modeling — onto ModelSEED. Self-contained, no LLM at runtime.**
 
-**Version**: 1.5.1 — see [CHANGELOG.md](CHANGELOG.md). New to the repo? Hand it to
+**Version**: 1.6.0 — see [CHANGELOG.md](CHANGELOG.md). New to the repo? Hand it to
 Claude Code — [`CLAUDE.md`](CLAUDE.md) is a complete setup-and-run runbook.
 
 ontomap has **two capabilities**:

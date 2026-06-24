@@ -5,6 +5,56 @@ All notable changes to ontomap are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.0] — 2026-06-24
+
+Self-contained, deletion-resilient, and self-documenting. Motivated by a
+deletion that emptied `data/embeddings/` (the runtime's base SapBERT cache)
+while a stale symlink lingered — the tool's data layer had been a web of
+symlinks pointing out of the repo into volatile workspace/inputs dirs.
+
+### Fixed — embedding regeneration wrote the wrong npz keys
+- **`scripts/regen_embeddings.py` wrote keys `name/ec/equation/pathway`**, but
+  the runtime loader (`step17_evaluate.load_base_cache`) reads
+  `name_emb/ec_emb/eq_emb/pw_emb/ecs_raw`. A regenerated cache loaded fine in
+  the script but **crashed at `ontomap map` time** — the documented recovery
+  path was broken. The target + source writers now emit the exact runtime keys
+  (incl. `ecs_raw`), and a **post-write self-check** reloads and validates the
+  six keys + row-alignment so the format can never silently regress.
+- Fixed `SETUP_ASSETS.md` references to scripts that don't exist
+  (`link_weights.py`, `encode_corpus.py`) → point at the real
+  `download_models.py` / `regen_embeddings.py`; corrected the regen invocation.
+
+### Added — self-contained assets (deletion resilience)
+- All non-regenerable assets (LoRA adapters, SSO/KO dictionaries, splits,
+  swept weights) and the runtime embedding cache are now **vendored as real
+  files** in a maintainer checkout instead of symlinks into `workspace/` /
+  `inputs/`. The tool survives a wipe of those dirs. Assets stay gitignored, so
+  the non-public gold never reaches GitHub.
+- New `scripts/link_lora_adapters.py` (was referenced but missing) — links LoRA
+  adapters from a sibling workspace on a fresh clone; no-op if already real.
+
+### Added — self-documenting SQLite deliverables
+- `write_annotated_sqlite` / `write_sqlite` (reaction pipeline) and
+  `modelmap.write_sqlite` now auto-emit a schema **`README.md`** beside the DB:
+  file inventory, headline counts, full introspected table/view schema, the
+  `MSRXN:` join gotcha, and copy-paste SQL. Generated from the live DB so it
+  cannot drift from the data. Best-effort — never fails a build.
+- New CLI `ontomap describe <db.sqlite>` regenerates the schema doc for any
+  existing ontomap SQLite on demand.
+
+### Added — asset health doctor
+- `ontomap info` now runs a **shape-aware** asset check (not just "path
+  exists"): the embedding cache has the six runtime keys + row-alignment, the
+  SSO/KO dictionaries parse and are non-empty, and the LoRA adapter dirs are
+  real and non-empty. This is the early-warning that would have caught the
+  deletion behind this release.
+
+### Tests
+- `tests/test_embeddings_cache_format.py` — locks the loader↔regen key contract
+  and validates the bundled cache.
+- `tests/test_sqlite_readme.py` — every SQLite writer emits a README documenting
+  all tables + the MSRXN gotcha; `describe` regenerates on demand.
+
 ## [1.5.2] — 2026-06-17
 
 ### Fixed — model mapping now returns top-100 per query (was top-10)

@@ -262,6 +262,13 @@ def cmd_info(args: argparse.Namespace) -> int:
         if info.get("bundle_missing"):
             for m in info["bundle_missing"]:
                 print(f"             ✗ missing: {m}")
+        health = info.get("asset_health") or {}
+        if health:
+            bad = info.get("asset_health_bad") or []
+            print(f"  Assets:    {len(health) - len(bad)}/{len(health)} healthy"
+                  + (f"  (bad: {', '.join(bad)})" if bad else ""))
+            for k in bad:
+                print(f"             ✗ {k}: {health[k].get('error')}")
         print(f"  Smoke:     {info.get('smoke_status','skipped')}")
         if info.get("warnings"):
             print("  Warnings:")
@@ -272,6 +279,24 @@ def cmd_info(args: argparse.Namespace) -> int:
 
 def cmd_version(args: argparse.Namespace) -> int:
     print(__version__)
+    return 0
+
+
+def cmd_describe(args: argparse.Namespace) -> int:
+    """(Re)generate the schema README beside an existing ontomap SQLite."""
+    from pathlib import Path
+
+    from ontomap.io import write_sqlite_readme
+
+    db = Path(args.db)
+    if not db.exists():
+        print(f"ERROR: {db} not found", file=sys.stderr)
+        return 1
+    readme = write_sqlite_readme(db, kind=args.kind)
+    if readme is None:
+        print(f"ERROR: could not introspect {db}", file=sys.stderr)
+        return 2
+    print(f"wrote {readme}")
     return 0
 
 
@@ -423,6 +448,18 @@ def build_parser() -> argparse.ArgumentParser:
                    help="re-hash every bundled file and compare to weights/MANIFEST.txt (slow)")
     i.add_argument("--json", action="store_true", help="emit JSON")
     i.set_defaults(func=cmd_info)
+
+    # ---- describe ----
+    d = sub.add_parser(
+        "describe",
+        help="(re)generate the schema README beside an ontomap SQLite deliverable",
+    )
+    d.add_argument("db", help="path to an ontomap .sqlite file")
+    d.add_argument(
+        "--kind", default="auto", choices=["auto", "annotated", "model", "core"],
+        help="deliverable type (default: auto-detect from tables)",
+    )
+    d.set_defaults(func=cmd_describe)
 
     # ---- version ----
     v = sub.add_parser("version", help="print package version")

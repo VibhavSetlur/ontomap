@@ -6,7 +6,7 @@
 git clone https://github.com/VibhavSetlur/ontomap.git && cd ontomap
 pip install -e .                          # editable install
 bash scripts/setup.sh                     # fetch public assets: SapBERT + ModelSEED tables
-ontomap version                           # 1.5.1
+ontomap version                           # 1.6.0
 ontomap map-model --model your_model.json --output mapping.sqlite   # capability 1
 ```
 
