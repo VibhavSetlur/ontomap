@@ -6,7 +6,7 @@
 git clone https://github.com/VibhavSetlur/ontomap.git && cd ontomap
 pip install -e .                          # editable install
 bash scripts/setup.sh                     # fetch public assets: SapBERT + ModelSEED tables
-ontomap version                           # 1.6.0
+ontomap version                           # 1.6.1
 ontomap map-model --model your_model.json --output mapping.sqlite   # capability 1
 ```
 
@@ -40,18 +40,20 @@ pip install -e .
 
 ## Sharing / copying the folder
 
-The bundled `weights/` and `data/` directories use **relative-or-absolute symlinks** to keep the source-repo disk footprint small. When sharing, dereference them so the recipient gets real files:
+The preferred way to share is a **git clone + `bash scripts/setup.sh`** — the
+small gold inputs (LoRA adapters, dictionaries, splits) ship in git as real
+files, and `setup.sh` reconstructs the large fetched/computed assets (encoders,
+ModelSEED corpus, embeddings cache). No symlink dereferencing needed.
+
+If you instead copy a *populated* checkout directly (e.g. HPC-to-HPC, to skip
+re-downloading the ~880 MB encoders), note that `download_models.py` links the
+encoders into the HuggingFace cache — so dereference symlinks on copy:
 
 ```bash
-# zip option (recommended) — recipient untars and runs pip install -e .
-tar -czhf ontomap-v0.1.0.tar.gz ontomap/          # -h dereferences symlinks
-# or
-zip -r --symlinks  ontomap-v0.1.0-with-symlinks.zip ontomap/   # WRONG — preserves symlinks
-zip -r            ontomap-v0.1.0.zip            ontomap/       # also wrong (zip silently follows by default but verify)
-
+# zip option — recipient untars and runs pip install -e .
+tar -czhf ontomap-bundle.tar.gz ontomap/          # -h dereferences symlinks
 # rsync option — for HPC-to-HPC transfer
 rsync -avL ontomap/ user@dest:/path/ontomap/      # -L dereferences symlinks
-
 # cp option — for same-machine relocation
 cp -RL ontomap /destination/ontomap               # -L dereferences
 ```
@@ -61,10 +63,12 @@ Recipient then:
 ```bash
 cd ontomap
 pip install -e .
+bash scripts/setup.sh               # fills in anything the copy missed (idempotent)
 ontomap info --verify-manifest      # confirms every file matches its SHA-256
 ```
 
-If `--verify-manifest` reports BAD or MISSING for any artifact, the share failed (symlink not dereferenced, or partial copy). Re-share with `cp -RL` / `rsync -L` / `tar -czh`.
+If `--verify-manifest` reports BAD or MISSING for any artifact, just re-run
+`bash scripts/setup.sh` — it regenerates whatever is missing.
 
 ## With GPU FAISS (optional ~2× retrieval speedup)
 
@@ -102,7 +106,7 @@ ontomap info                                            # picks up ONTOMAP_HOME
 
 ## Troubleshooting
 
-**`ontomap info` reports `INCOMPLETE bundle`** — the symlinks didn't resolve. Common cause: copied with `cp` instead of `cp -RL`. Re-copy with dereferencing, or set `ONTOMAP_HOME` to the original folder.
+**`ontomap info` reports `INCOMPLETE bundle`** — one or more assets are missing or weren't fetched/computed yet. Fix: re-run `bash scripts/setup.sh` (idempotent — it regenerates only what's missing). If you relocated the folder, set `ONTOMAP_HOME` to point at the directory containing `weights/` and `data/`.
 
 **`ModuleNotFoundError: faiss`** — `pip install faiss-cpu` (CPU) or `pip install faiss-gpu` (GPU).
 

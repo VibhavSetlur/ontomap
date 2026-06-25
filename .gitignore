@@ -24,29 +24,44 @@ env/
 *.swp
 .DS_Store
 
-# Local model weights — regenerated via SETUP_ASSETS.md
+# ---------------------------------------------------------------------------
+# Large, freely-regenerable model weights — fetched by `bash scripts/setup.sh`
+# (download_models.py). NOT committed; they're public HuggingFace artifacts.
+# ---------------------------------------------------------------------------
 weights/*.safetensors
 weights/sapbert/
 weights/medcpt/
-weights/lora/*/lora_adapter/
-# DO bundle these even in dev:
+# DO commit (small, frozen project artifacts):
 !weights/MANIFEST.txt
 !weights/LICENSES.md
 !weights/README.md
 !weights/swept_weights.json
 !weights/isotonic_*.json
-!weights/lora/
 
-# Data symlinks — regenerated via SETUP_ASSETS.md
-data/dictionaries/*.json
-data/dictionaries/*.tsv
+# ---------------------------------------------------------------------------
+# Committed-to-git ESSENTIALS (small, hard-to-regenerate gold inputs that make
+# the repo self-contained — clone + `bash scripts/setup.sh` gives a working
+# pipeline with NO maintainer hand-off):
+#   - weights/lora/{sso,ko}/    trained LoRA adapters (~21 MB) — also
+#                               reproducible via scripts/train_lora_from_splits.py
+#   - data/dictionaries/        SSO/KO term dictionaries + gold maps (~9.5 MB)
+#   - data/splits/              Split-A/B/C train/val/test pairs (~3.4 MB) — the
+#                               training data the LoRA is reproduced from
+# These are intentionally tracked; do NOT add ignore rules for them.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Large, regenerable data — fetched/rebuilt by `bash scripts/setup.sh`:
+#   - ModelSEED corpus (37 MB)  -> build_corpus.py (public ModelSEED GitHub)
+#   - cached embeddings (278 MB) -> regen_embeddings.py (SapBERT + corpus)
+# ---------------------------------------------------------------------------
 data/embeddings/*.npz
 data/embeddings/*.npy
 data/modelseed_corpus/*
 data/modelseed/*
-data/splits/*.json
-!data/splits/*.example.json
-!data/splits/README.md
+# keep directory placeholders
+!data/embeddings/.gitkeep
+!data/modelseed_corpus/.gitkeep
 
 # Coverage
 .coverage

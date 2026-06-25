@@ -5,6 +5,55 @@ All notable changes to ontomap are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.1] — 2026-06-25
+
+**Truly self-contained from a `git clone`.** A user hit
+`need: SSO LoRA adapter + target_sapbert.npz` running the reaction pipeline from
+a fresh clone. Root cause: the assets that make capability 2 work were
+`.gitignore`d (so absent from any clone) AND the regeneration path was broken in
+several places. This release makes a clone + `bash scripts/setup.sh` reconstruct
+**every** asset with no maintainer hand-off, and the docs no longer claim the
+LoRA/dictionaries are "not public".
+
+### Fixed — fresh clone was non-functional for capability 2
+- **`ontomap/_helpers/ontomap_lib/*` were symlinks** into a sibling `src/` tree
+  that doesn't exist in a clone (dangling links → all reaction-pipeline imports
+  broke). De-referenced into real committed files.
+- **`ontomap_lib/data.py`** read dead paths (`data/ground-truth/`,
+  `data/raw/modelseed/`). Now resolves the real bundled layout
+  (`data/dictionaries/`, `data/modelseed_corpus/`), honours `$ONTOMAP_HOME`, and
+  works standalone (not just under the runtime's monkey-patch).
+- **`_helpers/step17_evaluate.py`** had a hardcoded `/scratch/vsetlur/...` root +
+  workspace-only embedding/swept-weight paths. Now derived from the package
+  location with bundled-layout defaults.
+- **`scripts/build_corpus.py`** fetched only `reactions.tsv`/`compounds.tsv`,
+  not the `Aliases/Unique_ModelSEED_*.txt` tables the multi-axis render +
+  `regen_embeddings.py` require. Now downloads them too.
+
+### Added — reproducible LoRA + one-command bootstrap
+- **`scripts/train_lora_from_splits.py`** reproduces both LoRA adapters from the
+  bundled `data/splits/` with the frozen recipe — the adapters are no longer a
+  "request from the maintainer" artifact. Verified to reproduce the published
+  top-1 calls (e.g. Enoyl-CoA hydratase → rxn02167).
+- **`scripts/setup.sh`** rewritten into one idempotent bootstrap (install →
+  encoders → corpus → embeddings → LoRA → verify) that handles both a fresh
+  clone and a populated checkout; `--skip-reaction-pipeline` for capability 1
+  only.
+
+### Changed — commit the small gold inputs
+- `.gitignore` now **tracks** `weights/lora/`, `data/dictionaries/`, and
+  `data/splits/` (~34 MB total) so the clone is self-contained, while keeping the
+  large regenerable binaries (encoders, embeddings npz, ModelSEED corpus) out of
+  git.
+- Docs (`README`, `INSTALL`, `CLAUDE.md`, `SETUP_ASSETS.md`) updated: both
+  capabilities run from a clone; removed "not public / broken symlinks / request
+  from maintainer" language.
+
+### Verified
+- Simulated a gitignore-accurate fresh clone, ran `setup.sh`: 16/16 artifacts
+  present, 5/5 assets healthy, 28 smoke tests pass, both capabilities produce
+  correct mappings. `regen_embeddings.py` reproduces a bit-identical cache.
+
 ## [1.6.0] — 2026-06-24
 
 Self-contained, deletion-resilient, and self-documenting. Motivated by a

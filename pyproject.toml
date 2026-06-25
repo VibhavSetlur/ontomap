@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ontomap"
-version = "1.6.0"
+version = "1.6.1"
 description = "Pipeline_3 frozen: SapBERT-LoRA + multi-axis FAISS + MedCPT fused rerank for SSO/KO → ModelSEED reaction mapping (no LLM, self-contained, shareable)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -74,14 +74,17 @@ ontomap = [
   "weights/*.safetensors",
   "weights/*.json",
   "weights/*.txt",
-  "weights/lora/sso/*",
-  "weights/lora/ko/*",
+  "weights/lora/sso/**/*",
+  "weights/lora/ko/**/*",
   "weights/medcpt/*",
   "weights/sapbert/*",
   "weights/swept_weights.json",
   "weights/MANIFEST.txt",
-  "data/*.json",
-  "data/*.tsv",
+  "data/dictionaries/*",
+  "data/splits/*",
+  "data/modelseed/*",
+  "data/modelseed_corpus/**/*",
+  "data/embeddings/*",
 ]
 
 [tool.ruff]

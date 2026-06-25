@@ -2,7 +2,7 @@
 
 **Ontology mapping for metabolic modeling — onto ModelSEED. Self-contained, no LLM at runtime.**
 
-**Version**: 1.6.0 — see [CHANGELOG.md](CHANGELOG.md). New to the repo? Hand it to
+**Version**: 1.6.1 — see [CHANGELOG.md](CHANGELOG.md). New to the repo? Hand it to
 Claude Code — [`CLAUDE.md`](CLAUDE.md) is a complete setup-and-run runbook.
 
 ontomap has **two capabilities**:
@@ -10,7 +10,7 @@ ontomap has **two capabilities**:
 | | what | input | output | assets |
 |---|---|---|---|---|
 | **1. Model mapping** (`ontomap.modelmap`, v1.5+) | line up a whole published model's **compounds + reactions** with ModelSEED | a metabolic model (COBRA JSON) | ModelSEED **compound & reaction** ids (rich SQLite) | public (SapBERT + ModelSEED tables) — **runs from a clone** |
-| **2. Annotation → reaction** (`ontomap.Pipeline`, 1.x core) | map a gene's **function** to ModelSEED reactions | SSO/KO id or free text | ModelSEED **reactions** | + LoRA adapters & SSO/KO dictionaries (not public) |
+| **2. Annotation → reaction** (`ontomap.Pipeline`, 1.x core) | map a gene's **function** to ModelSEED reactions | SSO/KO id or free text | ModelSEED **reactions** | LoRA adapters + SSO/KO dictionaries — **ship in the repo** (adapters also reproducible from the bundled splits) |
 
 ```
 Model mapping (1): SapBERT synonym embedding + exact index + reaction-network rerank (compounds)
@@ -18,13 +18,26 @@ Model mapping (1): SapBERT synonym embedding + exact index + reaction-network re
 Reaction pipeline (2): SapBERT-LoRA → multi-axis FAISS top-100 → MedCPT fused rerank → +EC-priority → top-K
 ```
 
-## 60-second start (model mapping)
+## 60-second start
 
 ```bash
 git clone https://github.com/VibhavSetlur/ontomap.git && cd ontomap
 pip install -e .
-bash scripts/setup.sh          # fetch SapBERT + ModelSEED tables (public, idempotent)
+bash scripts/setup.sh          # reconstructs every asset (public + bundled), idempotent
+```
+
+`scripts/setup.sh` makes **both** capabilities work from a clone — no maintainer
+hand-off. It fetches the SapBERT/MedCPT encoders + ModelSEED tables (public),
+computes the cached embeddings, and ensures the LoRA adapters are present
+(they ship in git; if absent it retrains them from the bundled splits). For
+model mapping only (skips the reaction-pipeline assets) pass
+`--skip-reaction-pipeline`.
+
+```bash
+# capability 1 — map a whole model's compounds + reactions
 ontomap map-model --model your_model.json --output mapping.sqlite
+# capability 2 — map an annotation / SSO / KO to ModelSEED reactions
+ontomap map --text "Enoyl-CoA hydratase (EC 4.2.1.17)"
 ```
 ```python
 from ontomap import map_model_to_sqlite
@@ -146,7 +159,7 @@ When you receive `ontomap/` (zip / rsync / `cp -RL`), this whole tree is populat
 
 ```bash
 cd ontomap
-pip install -e .                # editable; uses bundled weights via symlinks/paths
+pip install -e .                # editable; uses bundled weights + data in place
 ontomap info                    # confirms the bundle is intact + tests imports
 ontomap map --sso SSO:000000027 # smoke test on a real query
 ```

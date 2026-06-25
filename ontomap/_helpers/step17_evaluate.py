@@ -43,13 +43,22 @@ from ontomap_lib.evaluate import score_one_query  # type: ignore
 from ontomap_lib.incomplete_gold_eval import bpref, soft_hit_at_k_ec  # type: ignore
 
 
-ROOT = Path("/scratch/vsetlur/ontology-mapping")
+ROOT = Path(__file__).resolve().parents[2]
 STEP = ROOT / "workspace/17_sapbert_lora"
-ADAPTERS = STEP / "outputs/adapters"
-EMB_BASE = ROOT / "data/embeddings/multi_axis_sapbert"
+ADAPTERS = ROOT / "weights" / "lora"
+# Cached base SapBERT corpus embeddings. Bundled layout: data/embeddings/.
+# (`_frozen_runtime.py` also overrides this attribute at load time; this
+# default makes the helper usable standalone from a clone.)
+EMB_BASE = ROOT / "data" / "embeddings"
 
+# Swept multi-axis weights. Bundled at weights/swept_weights.json; the
+# historical workspace path is kept as a fallback for in-workspace use.
+_SWEPT_BUNDLED = ROOT / "weights" / "swept_weights.json"
+_SWEPT_WORKSPACE = (
+    ROOT / "workspace/01_multi_axis_embeddings/outputs/reports/sapbert_swept.json"
+)
 SWEPT = json.loads(
-    (ROOT / "workspace/01_multi_axis_embeddings/outputs/reports/sapbert_swept.json").read_text()
+    (_SWEPT_BUNDLED if _SWEPT_BUNDLED.exists() else _SWEPT_WORKSPACE).read_text()
 )
 
 

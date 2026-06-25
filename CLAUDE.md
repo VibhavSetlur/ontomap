@@ -12,8 +12,9 @@ capabilities** (no LLM at runtime):
    namespace) onto **ModelSEED** ids. Needs only public assets (SapBERT +
    ModelSEED tables).
 2. **`ontomap.Pipeline`** (the 1.x core) — map a functional **annotation**
-   (RAST/SSO/KO id or free text) to ModelSEED **reactions**. Needs extra
-   assets (LoRA adapters + SSO/KO dictionaries) that are **not public**.
+   (RAST/SSO/KO id or free text) to ModelSEED **reactions**. The extra assets
+   it needs (LoRA adapters + SSO/KO dictionaries) **ship in the repo**; the
+   adapters are also reproducible from the bundled training splits.
 
 ## Setup (do this first)
 ```bash
@@ -24,7 +25,7 @@ pip install -e .
 # 3. Fetch public assets (SapBERT weights + ModelSEED tables) — idempotent
 bash scripts/setup.sh
 # 4. Confirm
-ontomap version        # 1.6.0
+ontomap version        # 1.6.1
 ontomap info           # device + bundle status + smoke test
 ```
 - **GPU optional**: any NVIDIA GPU ≥8 GB makes it ~10× faster; CPU works.
@@ -54,16 +55,17 @@ Inspect the DB: `sqlite3 mapping.sqlite "SELECT * FROM compound_top_n WHERE rank
 (views: `compound_top_n`, `reaction_top_n`). Full schema + accuracy +
 caveats: `docs/COMPOUND_REACTION_MAPPING.md`.
 
-## Run capability 2 — annotation → reaction (needs extra assets)
+## Run capability 2 — annotation → reaction
 ```bash
 ontomap map --text "Enoyl-CoA hydratase (EC 4.2.1.17)" --top-k 10
 ontomap map --sso SSO:000000027 --direction sso
 ```
-This needs the LoRA adapters + SSO/KO dictionaries + cached embeddings. They
-are **not in the public repo** (the `weights/lora/*/lora_adapter` symlinks are
-broken on a fresh clone). If the user needs the reaction pipeline, point them
-to `SETUP_ASSETS.md` and tell them to request those assets from the maintainer;
-otherwise prefer capability 1.
+This needs the LoRA adapters + SSO/KO dictionaries + cached embeddings. The
+adapters and dictionaries **ship in the repo**; `bash scripts/setup.sh` computes
+the cached embeddings (and, if the adapters are ever missing from a partial
+clone, retrains them from the bundled `data/splits/` via
+`scripts/train_lora_from_splits.py`). No maintainer hand-off is required — just
+run `setup.sh`, then `ontomap info` to confirm all assets are healthy.
 
 ## If the user gives you their own model
 1. Make sure it's COBRA-style JSON (metabolites + reactions with a `metabolites`
@@ -85,4 +87,4 @@ otherwise prefer capability 1.
 - `docs/COMPOUND_REACTION_MAPPING.md` — model mapping: method, results, schema, limitations
 - `docs/VALIDATION.md` / `docs/BENCHMARK.md` — reaction pipeline accuracy + scaling
 - `SETUP_ASSETS.md` / `INSTALL.md` — assets + install
-- `CHANGELOG.md` — release history (current: 1.6.0)
+- `CHANGELOG.md` — release history (current: 1.6.1)
