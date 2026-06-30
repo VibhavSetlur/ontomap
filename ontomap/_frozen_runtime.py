@@ -191,6 +191,8 @@ def _free_text_metadata(query_id: str, label: str) -> dict:
     code does not branch on free-text vs id input.
     """
     import re
+    if not isinstance(label, str):
+        label = "" if label is None else str(label)
     ec_pat = re.compile(r"EC[:\s-]?(\d+\.\d+\.\d+\.\d+|\d+\.\d+\.\d+\.-)")
     ecs = list(dict.fromkeys(ec_pat.findall(label)))
     # Strip the EC tag from the human-readable name (encoder still gets it via the EC axis).

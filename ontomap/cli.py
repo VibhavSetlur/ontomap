@@ -300,6 +300,72 @@ def cmd_describe(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_cluster(args: argparse.Namespace) -> int:
+    """Cluster function descriptions by reaction-prediction overlap (pre-council step).
+
+    Reads an ontomap predictions artefact (JSON/JSONL/SQLite), groups descriptions whose
+    top-k ModelSEED reaction sets overlap (Jaccard >= threshold) with a hard size cap
+    enforced by hierarchical sub-clustering, and writes a cluster-UUID table. Optionally
+    injects the clusters into an existing ontomap SQLite (clusters + cluster_members).
+    """
+    from ontomap.cluster import (
+        cluster_reaction_sets, cluster_result_to_rows,
+        load_reaction_sets_from_predictions,
+    )
+
+    reaction_sets = load_reaction_sets_from_predictions(args.predictions, topk=args.topk)
+    if not reaction_sets:
+        print(f"ERROR: no predictions found in {args.predictions}", file=sys.stderr)
+        return 1
+    result = cluster_reaction_sets(
+        reaction_sets, method=args.method, threshold=args.threshold, cap=args.cap, topk=args.topk
+    )
+    rows = cluster_result_to_rows(result)
+    hist = result.size_histogram()
+
+    out = Path(args.output)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    suffix = out.suffix.lower()
+    if suffix == ".parquet":
+        try:
+            import pyarrow as pa
+            import pyarrow.parquet as pq
+        except ImportError as e:
+            raise ImportError("install pyarrow to write parquet cluster output") from e
+        pq.write_table(pa.Table.from_pylist(rows), out)
+    elif suffix in (".tsv", ".csv"):
+        import csv as _csv
+        delim = "\t" if suffix == ".tsv" else ","
+        with out.open("w", newline="") as f:
+            w = _csv.DictWriter(f, fieldnames=list(rows[0].keys()), delimiter=delim)
+            w.writeheader()
+            w.writerows(rows)
+    elif suffix in (".json", ".jsonl"):
+        out.write_text(json.dumps({"clusters": result.clusters, "params": result.params}, indent=2))
+    else:
+        raise ValueError(f"unsupported --output extension: {out.name} (use .parquet/.tsv/.csv/.json)")
+
+    if args.inject_sqlite:
+        import sqlite3
+        from ontomap.io import write_clusters
+        conn = sqlite3.connect(args.inject_sqlite)
+        try:
+            wc = write_clusters(conn, result)
+        finally:
+            conn.close()
+        if not args.quiet:
+            print(f"injected {wc['clusters']} clusters / {wc['cluster_members']} members "
+                  f"into {args.inject_sqlite}", file=sys.stderr)
+
+    print(
+        f"clustered {len(reaction_sets)} descriptions -> {result.n_clusters} clusters "
+        f"({result.n_singletons} singletons, max size {max(hist)}); "
+        f"size histogram {hist}; wrote {out}",
+        file=sys.stderr,
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="ontomap",
@@ -366,7 +432,9 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--output", "-o", default=None, help="output path (omit to stream JSONL to stdout)")
     m.add_argument("--format", "-f", choices=["sssom-tsv", "json", "jsonl", "csv", "tsv", "parquet"], default=None,
                    help="output format (auto-detected from --output extension if omitted)")
-    m.add_argument("--top-k", "-k", type=int, default=10, help="number of candidates per query (default 10)")
+    m.add_argument("--top-k", "-k", type=int, default=20,
+                   help="number of candidates per query (default 20 — the validated production "
+                        "depth; enough for downstream `ontomap cluster` which uses top-20)")
     m.add_argument("--batch-size", type=int, default=64, help="encoder batch size (default 64)")
     m.add_argument("--device", default="auto", help="cuda | cpu | auto (default auto)")
     m.add_argument("--quiet", "-q", action="store_true")
@@ -460,6 +528,32 @@ def build_parser() -> argparse.ArgumentParser:
         help="deliverable type (default: auto-detect from tables)",
     )
     d.set_defaults(func=cmd_describe)
+
+    # ---- cluster ----
+    cl = sub.add_parser(
+        "cluster",
+        help="pre-council clustering: group descriptions by reaction-prediction overlap "
+             "(reaction-Jaccard + hard size cap) and emit a cluster-UUID table",
+    )
+    cl.add_argument("--predictions", "-p", required=True,
+                    help="ontomap predictions artefact to cluster (.sqlite/.parquet/.json/.jsonl)")
+    cl.add_argument("--output", "-o", required=True,
+                    help="cluster-UUID output (.parquet/.tsv/.csv/.json)")
+    from ontomap.cluster import CLUSTER_METHODS
+    cl.add_argument("--method", "-m", default="cc",
+                    choices=list(CLUSTER_METHODS),
+                    help="component-refinement algorithm (default cc; cc is the validated "
+                         "production default, others are alternative merge/cohesion trade-offs)")
+    cl.add_argument("--threshold", "-t", type=float, default=0.3,
+                    help="Jaccard edge threshold (default 0.3, validated production default)")
+    cl.add_argument("--cap", type=int, default=5,
+                    help="hard maximum cluster size (default 5; started here, targeting 2-3 per cluster)")
+    cl.add_argument("--topk", "-k", type=int, default=20,
+                    help="top-k reactions per description used for the Jaccard (default 20)")
+    cl.add_argument("--inject-sqlite", default=None,
+                    help="also write clusters+cluster_members into this existing ontomap SQLite")
+    cl.add_argument("--quiet", "-q", action="store_true")
+    cl.set_defaults(func=cmd_cluster)
 
     # ---- version ----
     v = sub.add_parser("version", help="print package version")

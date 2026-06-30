@@ -5,6 +5,125 @@ All notable changes to ontomap are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.3] — 2026-06-30
+
+**Input-robustness fix for free-text mapping.** `Pipeline.map_descriptions` crashed with
+`TypeError: expected string or bytes-like object, got 'float'` when a description was
+non-string — e.g. a `None` or a `NaN` float coming straight from a pandas column, which is
+common in real annotation dumps (TRANSYT / DRAM2 / BAKTA exports). Surfaced while
+preparing resolved descriptors for the 48-genome council augmentation.
+
+### Fixed
+- **`Pipeline.map_descriptions`**: coerces non-string descriptions at the API boundary
+  (`None` → `""`, other non-str → `str(...)`) so no downstream regex/encoder path receives
+  a non-string.
+- **`_frozen_runtime._free_text_metadata`** and **`multi_axis.clean_name`**: defensive
+  string coercion (defense-in-depth for the same class of bug).
+- New regression test `tests/test_input_robustness.py::test_non_string_descriptions_do_not_crash`.
+
+## [1.8.2] — 2026-06-29
+
+**Clustering scalability fix — required for the full-genome run.** The 113,006-description
+all-genome set has a giant reaction-hub component (~85k descriptions transitively linked through a
+handful of very common reactions). The previous clustering hung on it (the adjacency builder
+materialised ~10^9 candidate pairs and the cap-split re-ran connected components on the whole blob
+at every threshold step). No change to results on the validated 49k set; the cap is still always
+honoured.
+
+### Fixed
+- **`_build_adjacency`**: replaced the global all-pairs `checked` set with a per-item co-occurrence
+  Counter plus a **shared-reaction prefilter** (`_min_shared_for_threshold`) — a pair can only reach
+  Jaccard ≥ t if it shares enough reactions, so the >99% of hub pairs that can't are skipped before
+  any Jaccard is computed. Memory is now bounded by per-item candidates, not the global pair space.
+- **`_enforce_cap`**: oversized pieces now use an **accelerated threshold schedule** (geometric jump
+  toward `max_t` instead of crawling by `step`) and a deterministic size-cap fallback once near the
+  ceiling, so an irreducible dense hub finishes in bounded time instead of looping. Full 113k set
+  now clusters in ~6 min.
+
+## [1.8.1] — 2026-06-26
+
+**Production hardening for the full-genome run.** No behaviour change to the validated pipeline —
+this locks robust defaults and makes the I/O fail loudly + clearly instead of cryptically, ahead of
+running the final 48-genome annotation parquet (filter non-metabolic [upstream] → `ontomap map` →
+`ontomap cluster`).
+
+### Changed
+- **`ontomap map --top-k` default 10 → 20** — a default batch run now already emits the validated
+  production depth and satisfies downstream `ontomap cluster` (top-20) without silent truncation.
+  Ad-hoc single-query use is unaffected (pass `-k` to override).
+
+### Hardened (clearer errors, no silent failures)
+- **Description readers** (parquet / csv / tsv / jsonl): an explicit `--text-column` /
+  `--id-column` that doesn't exist now raises a clear error listing the available columns
+  (was a cryptic `KeyError`). Empty inputs return `([], [])` instead of crashing.
+- **`load_reaction_sets_from_predictions`**: missing file → `FileNotFoundError`; a SQLite without a
+  `predictions` table or a parquet missing `query_id/rank/reaction_id` → a clear `ValueError`
+  naming the gap. **Added `.parquet` predictions support** (query_id, rank, reaction_id).
+
+## [1.8.0] — 2026-06-26
+
+**Selectable clustering algorithms (NEW, additive).** `cluster_reaction_sets` and the
+`ontomap cluster` CLI now take a `method=` / `--method` argument to choose how each natural
+Jaccard component is refined into sub-clusters. Added after a 7-way algorithm bake-off on the
+real 49,183-description top-20 reaction sets (workspace step 55).
+
+### Added
+- **`method` parameter** on `cluster_reaction_sets(...)`, `cluster_result_from_results(...)`,
+  and `ontomap cluster --method`. Choices (`ontomap.CLUSTER_METHODS`):
+  - `cc` (default) — connected components + hierarchical tighten-split. Best stability,
+    simplest, dependency-free, and the only method that scales to the data's giant
+    ~30k-node reaction-hub component. **Recommended production default.**
+  - `louvain`, `label_prop` — graph community detection (needs `networkx`); slightly more
+    aggressive merging.
+  - `agglomerative`, `hdbscan` — pairwise-distance methods (need `scipy` / `scikit-learn`);
+    auto-fall-back to `cc` on components above `cluster._MAX_DENSE` (the O(m²) distance
+    matrix cannot be built on the hub).
+- `CLUSTER_METHODS` exported from the package root.
+- `ClusterResult.params` now records `algorithm` for provenance.
+
+### Findings (step 55 bake-off, 49,183 descriptions, top-20, cap=5)
+- All 7 algorithms land within **~1.6%** on cluster count, multi-member count, cohesion, and
+  stability. Method choice is second-order to threshold + cap.
+- `cc` has the best stability (ARI 0.793) and ties `hdbscan` for best cohesion (~0.625);
+  `louvain`/`greedy`/`dyncut` merge slightly more at marginally lower cohesion + stability.
+- Data contains one 30,553-node reaction-hub component; only graph/CC methods scale to it.
+
+### Tests
+- `tests/test_cluster_methods.py` — every method runs, respects the cap, groups obvious
+  synonyms, records provenance; invalid method + `cap<1` raise.
+
+## [1.7.0] — 2026-06-25
+
+**Pre-council clustering (NEW, additive).** Adds the upstream clustering stage for the
+48-genome annotation pipeline: group function descriptions whose ontomap ModelSEED
+reaction predictions overlap, so José's LLM council can run once per small cluster instead
+of once per description. Reaction-output Jaccard connected-components with a hard size cap
+enforced by hierarchical sub-clustering — the method selected and hardened in a five-way
+bake-off + robustness study (see workspace step 52). Nothing in the existing map / map-model
+/ aggregate paths changes.
+
+### Added
+- **`ontomap/cluster.py`** — `cluster_reaction_sets(reaction_sets, threshold=0.3, cap=5,
+  topk=10)` groups queries by Jaccard overlap of their top-k reaction predictions; any
+  component above `cap` is split by hierarchical threshold-tightening (never random
+  batching). Each cluster gets a stable `uuid5` id. `cluster_embeddings(...)` is provided
+  as a documented comparator only (k-means cannot respect the small cap). `ClusterResult`
+  dataclass carries assignments + per-cluster size/cohesion/representative.
+- **`ontomap cluster` CLI** — clusters an ontomap predictions artefact (`.sqlite`/`.json`/
+  `.jsonl`) and writes a cluster-UUID table (`.parquet`/`.tsv`/`.csv`/`.json`). `--threshold`,
+  `--cap`, `--topk` knobs; `--inject-sqlite` also writes the clusters into an existing
+  deliverable DB.
+- **SQLite schema** — `write_sqlite` / `write_annotated_sqlite` accept `cluster_result=` and
+  add `clusters` + `cluster_members` tables and a `cluster_overview` view.
+- Public API: `cluster_reaction_sets`, `cluster_embeddings`, `ClusterResult` exported from
+  the package root.
+
+### Validated
+- On the real Acidovorax 3H11 deliverable (8,473 descriptions × top-100): 5,489 clusters,
+  zero above the cap (max size 5), within-cluster cohesion 0.64, assignment stability ARI
+  0.877 under prediction perturbation, and biologically coherent synonym/subunit families.
+  Embedding/k-means baselines leaked 47–79 % of items into clusters up to size ~1,850–3,000.
+
 ## [1.6.1] — 2026-06-25
 
 **Truly self-contained from a `git clone`.** A user hit

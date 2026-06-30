@@ -25,7 +25,7 @@ pip install -e .
 # 3. Fetch public assets (SapBERT weights + ModelSEED tables) — idempotent
 bash scripts/setup.sh
 # 4. Confirm
-ontomap version        # 1.6.1
+ontomap version        # 1.8.3
 ontomap info           # device + bundle status + smoke test
 ```
 - **GPU optional**: any NVIDIA GPU ≥8 GB makes it ~10× faster; CPU works.
@@ -67,6 +67,31 @@ clone, retrains them from the bundled `data/splits/` via
 `scripts/train_lora_from_splits.py`). No maintainer hand-off is required — just
 run `setup.sh`, then `ontomap info` to confirm all assets are healthy.
 
+## Run the pre-council clustering (v1.7+)
+For the 48-genome annotation pipeline: after mapping descriptions to reactions,
+group descriptions whose reaction predictions overlap so the LLM council runs
+once per small synonym cluster instead of once per description.
+```bash
+# cluster an existing predictions artefact (.sqlite / .json / .jsonl)
+ontomap cluster -p predictions.sqlite -o clusters.parquet \
+                --threshold 0.3 --cap 5 --topk 20 --inject-sqlite predictions.sqlite
+# pick a clustering algorithm (default cc): --method {cc,louvain,label_prop,agglomerative,hdbscan}
+```
+- **Method (v1.8+):** `--method` / `method=` selects how each natural Jaccard component is
+  refined. `cc` (default) is the validated production method — best stability, dependency-free,
+  and the only one that scales to the data's ~30k-node reaction-hub. louvain/label_prop need
+  networkx; agglomerative/hdbscan need scipy/sklearn and auto-fall-back to cc on the hub. The
+  step-55 bake-off found all 7 within ~1.6%, so cc stays default.
+- Method: reaction-output Jaccard connected components + **hierarchical hard size
+  cap** (split oversized clusters by tightening Jaccard, never random batching).
+  Validated winner over embedding/k-means (which cannot respect a small cap) in
+  workspace step 52. Defaults `T=0.3, cap=5, topk=10` are the hardened production
+  values (Henry's verdict: size 2-3 sweet spot, hard cap 5; `--cap` is tunable for
+  a soft-cap-10 follow-up).
+- Programmatic: `from ontomap import cluster_reaction_sets, ClusterResult`.
+- Output: a cluster-UUID table (one row per query_id, stable `uuid5` cluster ids)
+  plus optional `clusters` + `cluster_members` tables in the SQLite deliverable.
+
 ## If the user gives you their own model
 1. Make sure it's COBRA-style JSON (metabolites + reactions with a `metabolites`
    stoichiometry dict). If it's SBML/`.mat`, convert with `cobrapy` first.
@@ -87,4 +112,4 @@ run `setup.sh`, then `ontomap info` to confirm all assets are healthy.
 - `docs/COMPOUND_REACTION_MAPPING.md` — model mapping: method, results, schema, limitations
 - `docs/VALIDATION.md` / `docs/BENCHMARK.md` — reaction pipeline accuracy + scaling
 - `SETUP_ASSETS.md` / `INSTALL.md` — assets + install
-- `CHANGELOG.md` — release history (current: 1.6.1)
+- `CHANGELOG.md` — release history (current: 1.8.3)

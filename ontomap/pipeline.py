@@ -228,6 +228,10 @@ class Pipeline:
         if not self._loaded:
             self.load()
         k = top_k if top_k is not None else self.config.top_k_out
+        # Coerce non-string descriptions (None / NaN floats from a pandas column)
+        # at the API boundary so no downstream regex/encoder path sees a non-str.
+        descriptions = ["" if d is None else d if isinstance(d, str) else str(d)
+                        for d in descriptions]
         frs = self._impl.map_descriptions(
             descriptions, ids=ids, top_k=k, verbose=verbose
         )

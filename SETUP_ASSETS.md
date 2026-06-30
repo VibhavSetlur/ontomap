@@ -91,6 +91,6 @@ never loads source caches — it encodes sources fresh per query).
 
 ```bash
 ontomap info     # prints all asset paths + a real-file health check
-ontomap version  # 1.6.1
+ontomap version  # 1.8.3
 ontomap map --text "Enoyl-CoA hydratase (EC 4.2.1.17)"
 ```

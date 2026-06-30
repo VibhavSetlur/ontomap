@@ -2,7 +2,7 @@
 
 **Ontology mapping for metabolic modeling — onto ModelSEED. Self-contained, no LLM at runtime.**
 
-**Version**: 1.6.1 — see [CHANGELOG.md](CHANGELOG.md). New to the repo? Hand it to
+**Version**: 1.8.3 — see [CHANGELOG.md](CHANGELOG.md). New to the repo? Hand it to
 Claude Code — [`CLAUDE.md`](CLAUDE.md) is a complete setup-and-run runbook.
 
 ontomap has **two capabilities**:
@@ -185,6 +185,7 @@ python examples/quickstart.py   # programmatic equivalent
 ontomap map               map SSO/KO id(s) OR free-text description(s) to top-k ModelSEED reactions
 ontomap map-model         map a whole model's compounds + reactions to ModelSEED (rich SQLite) [v1.5+]
 ontomap aggregate-tsv     aggregate a multi-source annotation TSV (RAST/BAKTA/dram/glm4ec dump shape) into an ontomap-ready descriptions file (+ JSONL provenance sidecar)
+ontomap cluster           pre-council clustering: group descriptions by reaction-prediction overlap (reaction-Jaccard + hard size cap, selectable --method) → cluster-UUID table [v1.7+, methods v1.8+]
 ontomap bench             reproducible scaling benchmark (latency / RAM / VRAM at multiple N)
 ontomap info              version + weight pins + device + bundle status + smoke-test
 ontomap info --verify-manifest   re-hash every bundled file vs MANIFEST.txt
@@ -249,6 +250,24 @@ ontomap aggregate-tsv \
 ontomap map --text-input clean_descriptions.tsv \
             --id-column id --text-column description \
             --output acidovorax_predictions.json
+
+# 3. (Pre-council) Cluster descriptions by reaction-prediction overlap so the LLM
+#    council runs once per small synonym group instead of once per description.
+#    Reaction-Jaccard connected components with a hard size cap (Henry's verdict:
+#    sweet spot 2-3, cap 5); each cluster gets a stable UUID.
+ontomap cluster --predictions acidovorax_predictions.json \
+                --output acidovorax_clusters.parquet \
+                --threshold 0.3 --cap 5 --topk 20
+#    Or cluster straight from the SQLite deliverable and inject the cluster tables back in:
+ontomap cluster -p acidovorax.sqlite -o acidovorax_clusters.parquet \
+                --inject-sqlite acidovorax.sqlite
+
+#    Pick a different clustering algorithm (default cc; all within ~1.6% on real data, step-55
+#    bake-off). cc = connected-components + hierarchical cap (best stability, scales to the
+#    giant reaction-hub component). Alternatives: louvain / label_prop (graph community),
+#    agglomerative / hdbscan (pairwise-distance; auto-fall-back to cc on the hub).
+ontomap cluster -p acidovorax_predictions.json -o acidovorax_clusters.parquet \
+                --method louvain --threshold 0.3 --cap 5 --topk 20
 ```
 
 ### Programmatic
@@ -271,7 +290,7 @@ results = pipe.map_descriptions(
      "ABC transporter substrate-binding protein",
      "LSU rRNA pseudouridine(2457) synthase (EC 5.4.99.20)"],
     ids=["Ac3H11_100", "Ac3H11_2", "Ac3H11_10"],
-    top_k=10,
+    top_k=20,
 )
 print(results[0].top1)                 # (rxn02167, 0.93)  — EC 4.2.1.17 → enoyl-CoA hydration
 

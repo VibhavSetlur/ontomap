@@ -174,6 +174,22 @@ def test_ec_only(pipe):
     assert len(r.predictions) > 0
 
 
+@requires_weights
+def test_non_string_descriptions_do_not_crash(pipe):
+    """Real-world annotation dumps can contain non-string descriptions (None,
+    NaN floats from a pandas column). map_descriptions must coerce them
+    gracefully instead of raising TypeError inside EC extraction
+    (regression for _free_text_metadata receiving a float/None label)."""
+    descs = [None, 1.5, "aldehyde dehydrogenase"]
+    ids = ["none_q", "float_q", "ok_q"]
+    results = pipe.map_descriptions(descs, ids=ids, top_k=5, verbose=False)
+    assert len(results) == 3
+    for r, qid in zip(results, ids):
+        _assert_well_formed(r, qid)
+    # The real string still resolves to candidates.
+    assert len(results[2].predictions) > 0
+
+
 # ---- module-level smoke (no weights needed) ---------------------------------
 
 

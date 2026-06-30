@@ -47,11 +47,19 @@ v1.5.0 — Compound & Reaction mapping for whole models (NEW, additive):
     limitations, results, and figures.
 """
 
-__version__ = "1.6.1"
+__version__ = "1.8.3"
 
 from ontomap.pipeline import Pipeline, MapResult, PipelineConfig  # noqa: F401, E402
 from ontomap.aggregate import aggregate_annotation_tsv  # noqa: F401, E402
 from ontomap.io import write_sqlite, write_annotated_sqlite  # noqa: F401, E402
+# v1.7.0 — pre-council clustering of descriptions by reaction-prediction overlap.
+# v1.8.0 — selectable clustering algorithms (CLUSTER_METHODS).
+from ontomap.cluster import (  # noqa: F401, E402
+    cluster_reaction_sets,
+    cluster_embeddings,
+    ClusterResult,
+    CLUSTER_METHODS,
+)
 from ontomap.confidence_v2 import (  # noqa: F401, E402
     recalibrate_one,
     recalibrate_predictions,
@@ -71,6 +79,7 @@ __all__ = [
     "Pipeline", "MapResult", "PipelineConfig",
     "aggregate_annotation_tsv",
     "write_sqlite", "write_annotated_sqlite",
+    "cluster_reaction_sets", "cluster_embeddings", "ClusterResult", "CLUSTER_METHODS",
     "recalibrate_one", "recalibrate_predictions", "confidence_to_predicate_v2",
     "CompoundMapper", "ReactionMapper", "map_model",
     "map_model_to_sqlite", "write_model_sqlite",

@@ -161,6 +161,8 @@ def clean_name(name: str) -> str:
     """Strip inline EC numbers and trailing brackets from a name."""
     if not name:
         return ""
+    if not isinstance(name, str):
+        name = str(name)
     cleaned = re.sub(r"\s*\[\s*EC[^\]]*\]", "", name)
     cleaned = EC_INLINE_RE.sub("", cleaned)
     # remove any leftover empty bracket pairs

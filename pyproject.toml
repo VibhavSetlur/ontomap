@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ontomap"
-version = "1.6.1"
+version = "1.8.3"
 description = "Pipeline_3 frozen: SapBERT-LoRA + multi-axis FAISS + MedCPT fused rerank for SSO/KO → ModelSEED reaction mapping (no LLM, self-contained, shareable)."
 readme = "README.md"
 requires-python = ">=3.10"

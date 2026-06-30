@@ -141,6 +141,27 @@ def _guess_text_column(columns: Iterable[str]) -> str:
     )
 
 
+def _resolve_column(requested: str | None, available: list[str], *, kind: str,
+                    guesser) -> str:
+    """Resolve a user-requested column against the file's actual columns.
+
+    If ``requested`` is given but absent, raise a clear error listing what IS
+    available (instead of a cryptic KeyError deep in a reader). If not given,
+    fall back to the auto-detect guesser.
+    """
+    if requested:
+        if requested in available:
+            return requested
+        lower_map = {c.lower(): c for c in available}
+        if requested.lower() in lower_map:
+            return lower_map[requested.lower()]
+        raise ValueError(
+            f"requested {kind} column {requested!r} not found. "
+            f"Available columns: {available}"
+        )
+    return guesser(available)
+
+
 def read_descriptions(
     path: Path,
     text_column: str | None = None,
@@ -192,7 +213,8 @@ def read_descriptions(
         rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
         if not rows:
             return [], []
-        tcol = text_column or _guess_text_column(list(rows[0].keys()))
+        tcol = _resolve_column(text_column, list(rows[0].keys()), kind="description",
+                               guesser=_guess_text_column)
         descs = [str(r[tcol]) for r in rows]
         ids = (
             [str(r.get(id_column)) for r in rows]
@@ -206,8 +228,11 @@ def read_descriptions(
         with path.open() as f:
             reader = csv.DictReader(f, delimiter=delim)
             fieldnames = reader.fieldnames or []
-            tcol = text_column or _guess_text_column(fieldnames)
             rows = list(reader)
+        if not rows:
+            return [], []
+        tcol = _resolve_column(text_column, list(fieldnames), kind="description",
+                               guesser=_guess_text_column)
         descs = [str(row[tcol]) for row in rows]
         ids = (
             [str(row.get(id_column, "")) for row in rows]
@@ -222,11 +247,14 @@ def read_descriptions(
         except ImportError as e:
             raise ImportError("install pyarrow to read parquet inputs") from e
         tbl = pq.read_table(path)
-        tcol = text_column or _guess_text_column(tbl.column_names)
+        cols = list(tbl.column_names)
+        if tbl.num_rows == 0:
+            return [], []
+        tcol = _resolve_column(text_column, cols, kind="description", guesser=_guess_text_column)
         descs = [str(v) for v in tbl.column(tcol).to_pylist()]
         ids = (
             [str(v) for v in tbl.column(id_column).to_pylist()]
-            if id_column and id_column in tbl.column_names
+            if id_column and id_column in cols
             else None
         )
         return _finalize(descs, ids)
@@ -684,12 +712,16 @@ def write_sqlite_readme(
 
 
 def write_sqlite(results, path: Path, pipeline_version: str = "pipeline_3-v0.1.0",
-                 *, _emit_readme: bool = True) -> None:
+                 *, _emit_readme: bool = True, cluster_result=None) -> None:
     """Persist results to a SQLite database (3-table schema + a convenience view).
 
     _emit_readme: internal flag. write_annotated_sqlite calls this as a sub-step
     and emits its own (richer) README afterward, so it passes False to avoid a
     premature core-schema README claiming the README.md slot.
+
+    cluster_result: optional ontomap.cluster.ClusterResult. When provided, a
+    `clusters` + `cluster_members` table (and `cluster_overview` view) are added,
+    grouping queries by reaction-prediction overlap for the pre-council pipeline.
     """
     import datetime
     timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -758,6 +790,8 @@ def write_sqlite(results, path: Path, pipeline_version: str = "pipeline_3-v0.1.0
             p_rows,
         )
         conn.commit()
+        if cluster_result is not None:
+            write_clusters(conn, cluster_result)
     finally:
         conn.close()
     if _emit_readme:
@@ -867,6 +901,7 @@ def write_annotated_sqlite(
     genome_id: str,
     genome_name: str | None = None,
     pipeline_version: str = "pipeline_3-v0.1.0",
+    cluster_result=None,
 ) -> dict:
     """Write a self-contained deliverable SQLite that combines:
 
@@ -891,7 +926,8 @@ def write_annotated_sqlite(
     Returns: dict with per-table row counts.
     """
     import datetime
-    write_sqlite(results, out_path, pipeline_version=pipeline_version, _emit_readme=False)
+    write_sqlite(results, out_path, pipeline_version=pipeline_version, _emit_readme=False,
+                cluster_result=cluster_result)
     conn = sqlite3.connect(str(out_path))
     try:
         conn.executescript(ANNOTATED_SCHEMA_EXTRA)
@@ -995,16 +1031,90 @@ def write_annotated_sqlite(
 
         # counts for caller
         counts = {}
-        for t in ("queries", "predictions", "reactions",
+        tables = ["queries", "predictions", "reactions",
                   "genomes", "genes", "annotation_sources",
-                  "descriptions", "annotations", "existing_reactions"):
-            counts[t] = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+                  "descriptions", "annotations", "existing_reactions"]
+        if cluster_result is not None:
+            tables += ["clusters", "cluster_members"]
+        for t in tables:
+            try:
+                counts[t] = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+            except sqlite3.Error:
+                counts[t] = None
     finally:
         conn.close()
     write_sqlite_readme(
         out_path, pipeline_version=pipeline_version, counts=counts, kind="annotated"
     )
     return counts
+
+
+# ---- Clustering integration ------------------------------------------------
+
+
+CLUSTERS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS clusters (
+  cluster_id      TEXT PRIMARY KEY,
+  size            INTEGER NOT NULL,
+  cohesion        REAL,
+  representative  TEXT,
+  method          TEXT,
+  threshold       REAL,
+  cap             INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS cluster_members (
+  cluster_id  TEXT NOT NULL,
+  query_id    TEXT NOT NULL,
+  PRIMARY KEY (cluster_id, query_id),
+  FOREIGN KEY (cluster_id) REFERENCES clusters(cluster_id),
+  FOREIGN KEY (query_id)   REFERENCES queries(query_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_cluster_members_query ON cluster_members(query_id);
+
+CREATE VIEW IF NOT EXISTS cluster_overview AS
+SELECT c.cluster_id, c.size, c.cohesion, c.representative,
+       GROUP_CONCAT(q.source_name, ' | ') AS member_names
+FROM clusters c
+JOIN cluster_members m ON c.cluster_id = m.cluster_id
+LEFT JOIN queries q ON m.query_id = q.query_id
+GROUP BY c.cluster_id
+ORDER BY c.size DESC, c.cohesion DESC;
+"""
+
+
+def cluster_result_from_results(results, *, method: str = "cc", threshold: float = 0.3,
+                                cap: int = 5, topk: int = 20):
+    """Build a ClusterResult from a list of MapResult by clustering on each query's
+    top-k predicted reaction ids. Thin wrapper over ontomap.cluster so callers don't
+    have to assemble the reaction-set dict themselves. ``method`` selects the clustering
+    algorithm (see ontomap.cluster.CLUSTER_METHODS; default 'cc')."""
+    from ontomap.cluster import cluster_reaction_sets
+    reaction_sets = {
+        r.query_id: [rxn for rxn, _ in r.predictions]
+        for r in results
+    }
+    return cluster_reaction_sets(reaction_sets, method=method, threshold=threshold,
+                                 cap=cap, topk=topk)
+
+
+def write_clusters(conn, cluster_result) -> dict:
+    """Write a ClusterResult into an open SQLite connection (clusters + cluster_members
+    + cluster_overview view). Returns row counts. Idempotent via INSERT OR REPLACE."""
+    conn.executescript(CLUSTERS_SCHEMA)
+    p = cluster_result.params or {}
+    cl_rows = [
+        (cid, c["size"], c.get("cohesion"), c.get("representative"),
+         p.get("method"), p.get("threshold"), p.get("cap"))
+        for cid, c in cluster_result.clusters.items()
+    ]
+    mem_rows = [(cid, qid) for cid, c in cluster_result.clusters.items()
+                for qid in c["members"]]
+    conn.executemany("INSERT OR REPLACE INTO clusters VALUES (?,?,?,?,?,?,?)", cl_rows)
+    conn.executemany("INSERT OR REPLACE INTO cluster_members VALUES (?,?)", mem_rows)
+    conn.commit()
+    return {"clusters": len(cl_rows), "cluster_members": len(mem_rows)}
 
 
 # ---- Directory output -------------------------------------------------------
