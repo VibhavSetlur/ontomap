@@ -5,6 +5,27 @@ All notable changes to ontomap are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.4] — 2026-08-03
+
+**`map --format` now accepts `sqlite`.** SQLite output already worked via
+output-file-extension auto-detection (`--output x.sqlite`), but the `map`
+subcommand's `--format` enum omitted `sqlite`, so `ontomap map --format sqlite`
+was rejected by argparse even though the writer (`io.write_sqlite`) fully
+supported it — the same choice `map-model --format` already exposed. `sqlite`
+is now a first-class, documented `map --format` choice.
+
+### Fixed
+- **`cli.py`**: `map --format` choices now include `sqlite` (writes the
+  normalized queries/predictions/reactions relational DB + `top_n_with_meta`
+  view + schema README), matching `map-model --format`.
+
+### Cleanup
+- **`pipeline.py`**: removed a stale "Implementation note" docstring that
+  referenced internal dev-workspace script paths and described a
+  wire-up step that has already landed (`ontomap._frozen_runtime.FrozenPipeline`
+  is the bundled runtime this module imports and drives). Docstring only, no
+  behavior change.
+
 ## [1.8.3] — 2026-06-30
 
 **Input-robustness fix for free-text mapping.** `Pipeline.map_descriptions` crashed with

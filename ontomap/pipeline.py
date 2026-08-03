@@ -3,13 +3,10 @@
 This module wraps the workspace step 25/26 frozen pipeline as a clean,
 importable, batched API for the CLI and programmatic use.
 
-Implementation note (2026-06-10): the underlying pipeline helpers
-currently live in workspace/22_hybrid_ensemble/scripts/22a_ensemble_pipeline.py
-and workspace/17_sapbert_lora/scripts/17d_evaluate.py + step 18 18a_medcpt_rerank.py.
-The step-25 agent factored the common parts into
-`workspace/25_pipeline_3_frozen_gold_eval/scripts/_pipeline_3_runtime.py`.
-Once Phase 8 wire-up lands, this module imports from it (or copies
-the relevant functions verbatim into `ontomap/_frozen_runtime.py`).
+The underlying pipeline helpers (SapBERT-LoRA encoding, multi-axis FAISS
+retrieval, MedCPT cross-encoder rerank) are wired up as the bundled,
+self-contained `ontomap._frozen_runtime.FrozenPipeline`, which this module
+imports and drives.
 
 The MapResult shape is the public contract for the rich JSON / SQLite /
 SSSOM / Parquet outputs (see ontomap/io.py).

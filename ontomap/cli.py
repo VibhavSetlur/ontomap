@@ -430,8 +430,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     m.add_argument("--input-format", choices=["csv", "tsv", "json", "jsonl", "parquet", "txt"], default=None)
     m.add_argument("--output", "-o", default=None, help="output path (omit to stream JSONL to stdout)")
-    m.add_argument("--format", "-f", choices=["sssom-tsv", "json", "jsonl", "csv", "tsv", "parquet"], default=None,
-                   help="output format (auto-detected from --output extension if omitted)")
+    m.add_argument("--format", "-f",
+                   choices=["sssom-tsv", "json", "jsonl", "csv", "tsv", "parquet", "sqlite"], default=None,
+                   help="output format (auto-detected from --output extension if omitted); "
+                        "sqlite writes a normalized relational DB (queries/predictions/reactions "
+                        "tables + top_n_with_meta view + schema README)")
     m.add_argument("--top-k", "-k", type=int, default=20,
                    help="number of candidates per query (default 20 — the validated production "
                         "depth; enough for downstream `ontomap cluster` which uses top-20)")
