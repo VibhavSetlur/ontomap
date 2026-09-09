@@ -1,37 +1,93 @@
 # OntoMap
 
-OntoMap provides local, versioned ontology mapping inference. It retains the reaction `Pipeline`/CLI and introduces a
-self-contained Filipe text-to-GO plugin with immutable checksummed artifacts and provenance-bearing results.
+OntoMap supports two local workflows: the unchanged **legacy reaction/model** mapper (SSO/KO or functional descriptions → ModelSEED reactions) and the **registry text-to-GO** mapper (text → GO terms). Choose the method explicitly when using text.
 
-## Quick start
+## Prerequisites and install
+
+Python 3.10–3.12 and `pip` are required. From this project directory:
 
 ```bash
-ontomap map --method go-text --text "DNA repair helicase" --top-k 20
+python -m venv .venv
+. .venv/bin/activate                 # Windows: .venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+# optional: python -m pip install -e '.[gpu,sssom]'
+ontomap version
 ```
 
-New API users should call `ontomap.api.map_text`; legacy users can continue using `Pipeline` and `ontomap map` unchanged.
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/API_CLI.md](docs/API_CLI.md),
-[docs/PLUGIN_AUTHORING.md](docs/PLUGIN_AUTHORING.md), [docs/ARTIFACTS_SECURITY_PROVENANCE.md](docs/ARTIFACTS_SECURITY_PROVENANCE.md),
-[docs/COMPATIBILITY_MIGRATION.md](docs/COMPATIBILITY_MIGRATION.md), and [docs/DEVELOPMENT_TESTING.md](docs/DEVELOPMENT_TESTING.md).
+See [installation details](docs/INSTALL.md). `ontomap fetch-models` downloads runtime model dependencies when needed; `ontomap info --verify-manifest` verifies bundled-weight hashes.
 
-The bundled GO model uses word and character TF-IDF centroid cosine retrieval. Its scores are descriptive, not calibrated probabilities.
-The accepted external benchmark is kept separate under `ontomap/benchmarks`; it records 130,061 entities, 104,032/26,029 train/test,
-4,588 candidates, no entity overlap, top-1/5/20/100 .7989/.9218/.9502/.9705, MRR .8570, and coverage .9856.
+## Two five-minute examples
 
-## ModelSEED external corpus
+Legacy reaction mapping is still the default:
 
-ModelSEED records are **not packaged**. Acquire a reproducible ignored cache only when reaction/model mapping needs it:
+```bash
+ontomap map --sso SSO:000000027 --top-k 5
+ontomap map --text 'Enoyl-CoA hydratase (EC 4.2.1.17)' --method reaction --output reactions.json
+```
+
+GO mapping is the `map` command with `--method go-text`, not a separate command:
+
+```bash
+ontomap map --method go-text --text 'DNA repair helicase' --top-k 5
+ontomap map --method go-text --text-input annotations.tsv \
+  --id-column gene --text-column product --output go.jsonl
+```
+
+Both commands print one JSON result per query without `--output`. Batch input formats are CSV, TSV, JSON, JSONL, Parquet, or TXT. Output can be JSON, JSONL, SSSOM TSV, CSV, TSV, Parquet, SQLite, or a directory (one JSON file per query plus a manifest); choose by extension or use `--format`.
+
+## Common commands
+
+```bash
+ontomap list                              # registered method/version pairs
+ontomap describe go-text --method-version 1.0.0
+ontomap info --json
+ontomap fetch-models
+ontomap bench --help
+ontomap cluster --predictions results.json --output clusters.tsv
+ontomap aggregate-tsv --input raw.tsv --output clean.tsv --provenance clean.jsonl
+```
+
+Use `ontomap map --help` for exact options: `--sso`, `--ko`, `--input`, `--text`, and `--text-input` are mutually exclusive; `--method {reaction,go-text}`, `--method-version`, `--direction`, `--top-k`, `--batch-size`, `--device`, and output controls apply as documented in [API and CLI](docs/API_CLI.md).
+
+## Python APIs
+
+```python
+from ontomap.pipeline import Pipeline
+legacy = Pipeline.from_pretrained(direction='sso', device='auto')
+reaction = legacy.map_one('SSO:000000027', top_k=5)
+
+from ontomap.api import map_text, map_batch
+one_go = map_text('DNA repair helicase', method='go-text', version='1.0.0')
+many_go = map_batch(['DNA repair helicase'], method='go-text', version='1.0.0')
+```
+
+Legacy methods and serializers are detailed in [API and CLI](docs/API_CLI.md). Results include ranked mappings and method/version provenance. Reaction results include reaction-oriented fields; GO results are GO mappings. GO scores are retrieval scores, not calibrated probabilities. For confidence, clustering, model mapping, benchmarking, and output details, see [usage](docs/USAGE.md).
+
+## External ModelSEED corpus
+
+ModelSEED records are **not bundled**. Acquire them only for reaction/model mapping:
 
 ```bash
 .venv/bin/python scripts/build_corpus.py --cache-dir data/modelseed_corpus
-```
-
-The fetcher pins `194ac8afe48f8a606c0dd07ba3c7af10c02ba2fd`, writes per-file SHA-256 values to
-`manifest.json`, and records the upstream [CC BY 4.0 license](https://raw.githubusercontent.com/ModelSEED/ModelSEEDDatabase/master/LICENSE).
-It downloads external records only; a cache's presence must not be interpreted as proof that it matches the pin. Preview URLs without network access:
-
-```bash
 .venv/bin/python scripts/build_corpus.py --dry-run
 ```
 
-Pass `--modelseed-dir PATH` or set `ONTOMAP_MODELSEED=PATH` to explicitly select an acquired corpus. GO inference and its tests remain offline.
+The acquisition script pins commit `194ac8afe48f8a606c0dd07ba3c7af10c02ba2fd`, records per-file SHA-256 values in `manifest.json`, and records the upstream [CC BY 4.0 license](https://raw.githubusercontent.com/ModelSEED/ModelSEEDDatabase/master/LICENSE). Select an acquired corpus with `--modelseed-dir PATH` or `ONTOMAP_MODELSEED=PATH`; inspect the manifest/checksums before relying on a cache. GO inference remains local and does not require this corpus.
+
+## Compatibility, provenance, and security
+
+`reaction@legacy-1` remains available for compatibility; `go-text@1.0.0` is a distinct registry method. Select a known immutable version with `--method-version` or API `version`; `list` and `describe` reveal locally registered choices in a source/current editable install. Research promotion means authoring a new artifact directory, manifest, and version; roll back by selecting a prior version—never overwrite a manifest-described artifact. This is artifact/version authoring, not a CLI lifecycle command. Preserve result provenance and input/source licenses in downstream records, verify acquired artifacts, and do not treat mappings as authoritative biological assertions. See [compatibility](docs/COMPATIBILITY_MIGRATION.md) and [artifact security](docs/ARTIFACTS_SECURITY_PROVENANCE.md).
+
+## Feature matrix
+
+| Capability | Legacy reaction/model | Registry GO text |
+|---|---|---|
+| Inputs | SSO/KO IDs, descriptions, structured name/EC | text or text files |
+| CLI | `map --method reaction` (default) | `map --method go-text --text` / `--text-input` |
+| Python API | `Pipeline` | `map_text`, `map_batch` |
+| Method version | legacy compatibility method | `go-text@1.0.0` |
+| External ModelSEED corpus | optional/acquire-only | not required |
+| Batch/output formats | supported | supported via `map` output writer |
+
+See [examples](examples/README.md), [usage](docs/USAGE.md), and [API/CLI](docs/API_CLI.md).
