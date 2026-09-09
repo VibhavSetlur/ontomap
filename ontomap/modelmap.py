@@ -167,21 +167,10 @@ def _resolve_modelseed_dir(modelseed_dir=None) -> Path:
     env = os.environ.get("ONTOMAP_MODELSEED")
     if env:
         return Path(env)
-    if _paths is not None:
-        try:
-            cand = _paths.data_dir() / "modelseed"
-            if (cand / "compounds.tsv").exists():
-                return cand
-        except Exception:
-            pass
-    # file-relative fallback: packaged ontomap/data/modelseed (robust to import-name collisions)
-    cand = Path(__file__).resolve().parent.parent / "data" / "modelseed"
-    if (cand / "compounds.tsv").exists():
-        return cand
     raise FileNotFoundError(
-        "ModelSEED dir not found. Pass modelseed_dir=, set $ONTOMAP_MODELSEED, "
-        "or populate ontomap/data/modelseed/{compounds,reactions}.tsv "
-        "(see ontomap/SETUP_ASSETS.md).")
+        "ModelSEED source is not configured. Pass modelseed_dir= or set "
+        "$ONTOMAP_MODELSEED to an explicitly acquired external corpus; "
+        "local caches are ignored to keep inference reproducible.")
 
 
 def load_compounds(modelseed_dir=None) -> dict[str, CompoundRec]:

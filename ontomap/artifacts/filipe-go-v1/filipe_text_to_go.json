@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "split": {"method": "sha256(filipe-text-go-v1|source|entity_id) mod 100", "train_percent": 80},
+  "representation": {
+    "word": {"ngram_range": [1, 2], "min_df": 2, "sublinear_tf": true},
+    "char": {"analyzer": "char_wb", "ngram_range": [3, 5], "min_df": 2, "sublinear_tf": true}
+  },
+  "ranking": {"method": "training_document_GO_centroid_cosine", "max_rank": 100}
+}

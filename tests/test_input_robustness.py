@@ -21,7 +21,7 @@ import pytest
 
 # Ensure the source tree is importable when tests are invoked without
 # `pip install -e .` first.
-ONTOMAP_SRC = Path("/scratch/vsetlur/ontology-mapping/ontomap")
+ONTOMAP_SRC = Path(__file__).resolve().parents[1]
 if str(ONTOMAP_SRC) not in sys.path:
     sys.path.insert(0, str(ONTOMAP_SRC))
 

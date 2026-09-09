@@ -32,9 +32,9 @@ def install_root() -> Path:
 def home() -> Path:
     """Resolve the bundled-artifact root. Order of precedence:
 
-    1. `$ONTOMAP_HOME` env var
+    1. `$ONTOMAP_HOME` env var for externally provisioned runtime assets
     2. `install_root()` if `install_root()/weights/MANIFEST.txt` exists
-       (the bundled case — `weights/` and `data/` next to the package)
+        (the packaged-runtime case — `weights/` and `data/` next to the package)
     3. `install_root()` regardless (best-effort fallback)
     """
     env = os.environ.get("ONTOMAP_HOME")
@@ -77,6 +77,10 @@ def embeddings_dir() -> Path:
 
 
 def modelseed_corpus_dir() -> Path:
+    """Return only an explicitly configured acquire-only ModelSEED cache."""
+    configured = os.environ.get("ONTOMAP_MODELSEED")
+    if configured:
+        return Path(configured).expanduser()
     return data_dir() / "modelseed_corpus"
 
 

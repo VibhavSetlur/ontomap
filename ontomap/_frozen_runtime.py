@@ -325,8 +325,8 @@ class FrozenPipeline:
         # We need to monkey-patch its EMB_BASE before invocation
         if hasattr(s17, "EMB_BASE"):
             s17.EMB_BASE = bundled_emb
-        # Point the ModelSEED loaders at the bundled corpus. The bundled
-        # `ontomap_lib/data.py` uses two module-level path attrs we override:
+        # Point the ModelSEED loaders at the explicitly configured acquire-only
+        # cache. The bundled `ontomap_lib/data.py` uses two module-level path attrs we override:
         #   - MODELSEED_RAW: reactions.tsv + Aliases/Unique_ModelSEED_*.txt
         #   - GROUND_TRUTH:  SSO_dictionary.json + KO_dictionary.json
         if hasattr(omd, "MODELSEED_RAW"):
@@ -343,7 +343,7 @@ class FrozenPipeline:
 
         # 3) Load LoRA adapter. The bundled step17.load_lora_model expects the
         # PARENT directory of `lora_adapter/` and will append the suffix itself.
-        # Bundled layout: weights/lora/{sso,ko}/lora_adapter/.
+        # Package layout: weights/lora/{sso,ko}/lora_adapter/.
         lora_parent = _paths.lora_dir(self.direction)
         LOG.info(f"loading LoRA adapter from {lora_parent}/lora_adapter (base SapBERT bundled)")
         self._lora_model = s17.load_lora_model(lora_parent)

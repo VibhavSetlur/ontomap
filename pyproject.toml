@@ -85,6 +85,10 @@ ontomap = [
   "data/modelseed/*",
   "data/modelseed_corpus/**/*",
   "data/embeddings/*",
+  "artifacts/**/*.joblib",
+  "artifacts/**/*.json",
+  "benchmarks/*.json",
+  "schemas/*.json",
 ]
 
 [tool.ruff]

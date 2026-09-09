@@ -96,23 +96,26 @@ def cmd_map(args: argparse.Namespace) -> int:
         )
         return 2
 
-    pipe = Pipeline.from_pretrained(direction=direction, device=device,
-                                     ec_augment=getattr(args, "ec_augment", False))
-    if descriptions is not None:
-        results = pipe.map_descriptions(
-            descriptions,
-            ids=description_ids,
-            top_k=args.top_k,
-            batch_size=args.batch_size,
-            verbose=not args.quiet,
-        )
+    method = getattr(args, "method", "reaction")
+    if method == "go-text":
+        if descriptions is None:
+            print("ERROR: go-text accepts --text, --text-input, --name, or --ec text only", file=sys.stderr)
+            return 2
+        from ontomap.api import map_text
+        results = [
+            map_text(text, method=method, version=args.method_version, query_id=query_id, top_k=args.top_k)
+            for text, query_id in zip(descriptions, description_ids)
+        ]
     else:
-        results = pipe.map_batch(
-            ids,
-            top_k=args.top_k,
-            batch_size=args.batch_size,
-            verbose=not args.quiet,
-        )
+        pipe = Pipeline.from_pretrained(direction=direction, device=device,
+                                         ec_augment=getattr(args, "ec_augment", False))
+        if descriptions is not None:
+            results = pipe.map_descriptions(descriptions, ids=description_ids, top_k=args.top_k,
+                                            batch_size=args.batch_size, verbose=not args.quiet)
+        else:
+            results = pipe.map_batch(ids, top_k=args.top_k, batch_size=args.batch_size,
+                                     verbose=not args.quiet)
+
 
     if args.output:
         write_results(
@@ -135,7 +138,7 @@ def cmd_map_model(args: argparse.Namespace) -> int:
 
     Writes a rich, self-contained SQLite DB (default) or a raw JSON of the
     top-k predictions. ModelSEED data is resolved from --modelseed-dir →
-    $ONTOMAP_MODELSEED → bundled data/modelseed (see SETUP_ASSETS.md).
+    $ONTOMAP_MODELSEED. The ModelSEED corpus is acquire-only; see SETUP_ASSETS.md.
     """
     out = args.output
     fmt = args.format
@@ -282,15 +285,36 @@ def cmd_version(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_describe(args: argparse.Namespace) -> int:
-    """(Re)generate the schema README beside an existing ontomap SQLite."""
-    from pathlib import Path
+def cmd_list(args: argparse.Namespace) -> int:
+    """Print registered immutable mapping methods and their resolved metadata."""
+    from ontomap.api import default_registry
 
+    print(json.dumps({"methods": default_registry().methods()}, indent=2, sort_keys=True))
+    return 0
+
+
+def cmd_describe(args: argparse.Namespace) -> int:
+    """Describe a registered method, or retain the legacy SQLite schema command."""
+    from ontomap.api import default_registry
     from ontomap.io import write_sqlite_readme
 
-    db = Path(args.db)
+    target = args.target
+    registry = default_registry()
+    matches = [entry for entry in registry.methods() if entry["method"] == target]
+    if matches:
+        version = args.method_version
+        if version is not None:
+            matches = [entry for entry in matches if entry["version"] == version]
+        if len(matches) != 1:
+            qualifier = f"{target}@{version}" if version else target
+            print(f"ERROR: no unique registered method/version: {qualifier}", file=sys.stderr)
+            return 2
+        print(json.dumps({"method": matches[0]}, indent=2, sort_keys=True))
+        return 0
+
+    db = Path(target)
     if not db.exists():
-        print(f"ERROR: {db} not found", file=sys.stderr)
+        print(f"ERROR: method {target!r} is not registered and SQLite path was not found", file=sys.stderr)
         return 1
     readme = write_sqlite_readme(db, kind=args.kind)
     if readme is None:
@@ -416,6 +440,9 @@ def build_parser() -> argparse.ArgumentParser:
         help='(v1.4.0) optional semicolon-separated tags appended to the query, '
              'e.g. --tags "putative;partial"')
     m.add_argument("--direction", choices=["sso", "ko"], help="required when using --input")
+    m.add_argument("--method", choices=["reaction", "go-text"], default="reaction",
+                   help="mapping method (reaction is the legacy-compatible default)")
+    m.add_argument("--method-version", default=None, help="explicit immutable method version")
     m.add_argument("--id-column", default=None, help="column name in --input file (auto-detected if omitted)")
     m.add_argument(
         "--text-column",
@@ -489,8 +516,8 @@ def build_parser() -> argparse.ArgumentParser:
     mm.add_argument("--format", "-f", choices=["sqlite", "json"], default=None,
                     help="auto-detected from --output extension if omitted")
     mm.add_argument("--modelseed-dir", default=None,
-                    help="dir with compounds.tsv + reactions.tsv "
-                         "(default: $ONTOMAP_MODELSEED or bundled data/modelseed)")
+                     help="explicit acquire-only corpus dir with compounds.tsv + reactions.tsv "
+                          "(or $ONTOMAP_MODELSEED)")
     mm.add_argument("--top-k", "-k", type=int, default=100, help="candidates per query (default 100)")
     mm.add_argument("--device", default="auto", help="cuda | cpu | auto (default auto)")
     mm.add_argument("--no-network", action="store_true",
@@ -520,15 +547,19 @@ def build_parser() -> argparse.ArgumentParser:
     i.add_argument("--json", action="store_true", help="emit JSON")
     i.set_defaults(func=cmd_info)
 
-    # ---- describe ----
+    # ---- registry list / describe ----
+    ls = sub.add_parser("list", help="list registered immutable mapping methods")
+    ls.set_defaults(func=cmd_list)
+
     d = sub.add_parser(
         "describe",
-        help="(re)generate the schema README beside an ontomap SQLite deliverable",
+        help="describe a registered method, or (legacy) generate a SQLite schema README",
     )
-    d.add_argument("db", help="path to an ontomap .sqlite file")
+    d.add_argument("target", help="registered method name, or legacy ontomap .sqlite path")
+    d.add_argument("--method-version", default=None, help="explicit immutable method version")
     d.add_argument(
         "--kind", default="auto", choices=["auto", "annotated", "model", "core"],
-        help="deliverable type (default: auto-detect from tables)",
+        help="legacy SQLite deliverable type (default: auto-detect from tables)",
     )
     d.set_defaults(func=cmd_describe)
 
