@@ -3,13 +3,14 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from ontomap.plugins import FilipeGOPlugin, ReactionPlugin
+from ontomap.plugins import FilipeFilteredGOPlugin, FilipeGOPlugin, ReactionPlugin
 from ontomap.runtime import MappingQuery, MappingResult, Registry
 
 
 def default_registry() -> Registry:
     registry = Registry()
     registry.register(FilipeGOPlugin())
+    registry.register(FilipeFilteredGOPlugin())
     registry.register(ReactionPlugin())
     return registry
 

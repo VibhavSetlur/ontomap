@@ -11,3 +11,8 @@ manifest, and cites the upstream CC BY 4.0 license at
 `https://raw.githubusercontent.com/ModelSEED/ModelSEEDDatabase/master/LICENSE`. The cache contains external records and is never
 proof that a pre-existing local corpus matches that revision. Runtime selection requires `--modelseed-dir` or `ONTOMAP_MODELSEED`;
 ordinary GO inference does not read or download it.
+
+
+## Filtered GO promotion and rollback
+
+`ontomap/artifacts/filipe-go-filtered-v1/` is an immutable, manifest-verified filtered model bundle. It records the model, filter (`GO depth >= 2`), benchmark, output schema, and research-bundle provenance versions and checksums. `go-text@2.0.0` is the intentional default; select `go-text@1.0.0` to roll back without replacing either artifact. Both versions map arbitrary local text without identifiers, database access, or network access.

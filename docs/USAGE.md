@@ -34,7 +34,7 @@ ontomap list
 ontomap describe go-text --method-version 1.0.0
 ```
 
-The bundled GO method is `go-text@1.0.0`; compatibility reaction mapping is `reaction@legacy-1`. Results retain method/version provenance. Promote a research artifact by authoring a new immutable directory, manifest, and version; roll back by selecting a former version. These are artifact/version authoring and explicit selection practices, not CLI lifecycle commands. `list` is available from the source tree or a current editable installation. GO retrieval scores are not calibrated probabilities; use ranked candidates and provenance for review rather than an automatic biological conclusion.
+The bundled GO default is filtered `go-text@2.0.0`; `go-text@1.0.0` remains available as an explicit immutable rollback version, and compatibility reaction mapping is `reaction@legacy-1`. Results retain method/version provenance. Promote a research artifact by authoring a new immutable directory, manifest, and version; roll back by selecting a former version. These are artifact/version authoring and explicit selection practices, not CLI lifecycle commands. `list` is available from the source tree or a current editable installation. GO retrieval scores are not calibrated probabilities; use ranked candidates and provenance for review rather than an automatic biological conclusion.
 
 ## Outputs, confidence, and directories
 

@@ -12,7 +12,7 @@ from ontomap.runtime.schema import MappingQuery, MappingResult, Prediction
 class FilipeGOPlugin:
     name = "go-text"
     version = "1.0.0"
-    metadata = {"schema": "mapping-result-v1", "compatibility": {"input": "text only", "output": "MappingResult"}, "deprecation": None, "provenance": "manifest-backed artifact", "runtime": "offline", "artifact_version": "filipe-go-v1", "artifact_sha256": "5f6e8b9178177ca7f8ef1f4816d84700579ce58e2dafda2db36295ab774c3e86", "benchmark": "filipe-go-v1", "metric_schema": "filipe-go-v1.metrics"}
+    metadata = {"schema": "mapping-result-v1", "compatibility": {"input": "text only", "output": "MappingResult"}, "deprecation": None, "provenance": "manifest-backed artifact", "runtime": "offline", "default": False, "artifact_version": "filipe-go-v1", "artifact_sha256": "5f6e8b9178177ca7f8ef1f4816d84700579ce58e2dafda2db36295ab774c3e86", "benchmark": "filipe-go-v1", "metric_schema": "filipe-go-v1.metrics"}
     def __init__(self, artifact_dir: Path | None = None) -> None:
         self.artifact_dir = artifact_dir or Path(__file__).resolve().parents[1] / "artifacts" / "filipe-go-v1"
         self._model = None
@@ -35,3 +35,24 @@ class FilipeGOPlugin:
             "model_version": self._manifest["model_version"], "benchmark": self._manifest["benchmark"],
             "metric": self._manifest["metric"], "compatibility": self._manifest["compatibility"],
             "training": self._manifest["training"], "runtime_version": __version__})
+
+
+class FilipeFilteredGOPlugin(FilipeGOPlugin):
+    """Depth-filtered immutable Filipe GO artifact promoted as the GO default."""
+    version = "2.0.0"
+    metadata = {
+        "schema": "mapping-result-v1",
+        "compatibility": {"input": "text only", "output": "MappingResult", "rollback_method_version": "1.0.0"},
+        "deprecation": None,
+        "provenance": "manifest-backed filtered research artifact",
+        "runtime": "offline",
+        "default": True,
+        "artifact_version": "filipe-go-filtered-v1",
+        "artifact_sha256": "81e1bc338c57c050d5f87d31095b7b9f65240e421dbcbd7662fb33c11974b602",
+        "filter_version": "go-depth-gte-2-v1",
+        "benchmark": "filipe-go-filtered-v1",
+        "metric_schema": "filtered-metrics-v1",
+    }
+
+    def __init__(self, artifact_dir: Path | None = None) -> None:
+        super().__init__(artifact_dir or Path(__file__).resolve().parents[1] / "artifacts" / "filipe-go-filtered-v1")

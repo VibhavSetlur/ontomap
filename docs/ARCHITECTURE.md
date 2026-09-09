@@ -1,7 +1,7 @@
 # Architecture
 
 `ontomap.runtime` provides validated queries/results, checksum verification, and a local explicit registry.
-`ontomap.plugins` contains bundled implementations. `reaction@legacy-1` adapts the existing `Pipeline`; `go-text@1.0.0`
+`ontomap.plugins` contains bundled implementations. `reaction@legacy-1` adapts the existing `Pipeline`; `go-text@2.0.0` (filtered default; `go-text@1.0.0` is explicit rollback)
 loads only the checked-in Filipe artifact. The registry has no discovery framework or network behavior.
 
 `Registry.methods()` reports independently versioned plugin/method and implementation identity plus schema,

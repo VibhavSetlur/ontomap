@@ -44,7 +44,7 @@ results = map_batch(['DNA repair helicase', 'ATP synthase assembly'],
                     method='go-text', version='1.0.0', query_ids=['gene-1', 'gene-2'], top_k=20)
 ```
 
-`map_batch` preserves input order and generates `Q1`, `Q2`, … when IDs are omitted. The registry resolves the selected local method/version and returns provenance-bearing results. `go-text@1.0.0` accepts text; `reaction@legacy-1` is the compatibility method. Promote research artifacts by adding a new immutable directory/manifest/version, and roll back by selecting a prior version; these are authoring and selection practices, not CLI lifecycle commands.
+`map_batch` preserves input order and generates `Q1`, `Q2`, … when IDs are omitted. The registry resolves the selected local method/version and returns provenance-bearing results. `go-text@2.0.0` accepts text by default; select `go-text@1.0.0` explicitly for rollback; `reaction@legacy-1` is the compatibility method. Promote research artifacts by adding a new immutable directory/manifest/version, and roll back by selecting a prior version; these are authoring and selection practices, not CLI lifecycle commands.
 
 ## CLI
 

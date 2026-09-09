@@ -29,6 +29,10 @@ class Registry:
         self._bundles[key] = Bundle(*key, plugin)
     def resolve(self, method: str, version: str | None = None) -> Bundle:
         matches = [bundle for (name, ver), bundle in self._bundles.items() if name == method and (version is None or ver == version)]
+        if version is None and len(matches) > 1:
+            defaults = [bundle for bundle in matches if getattr(bundle.plugin, "metadata", {}).get("default") is True]
+            if len(defaults) == 1:
+                return defaults[0]
         if len(matches) != 1:
             qualifier = f"{method}@{version}" if version else method
             raise ValidationError("unknown_method_version", f"no unique registered method/version: {qualifier}", "method")

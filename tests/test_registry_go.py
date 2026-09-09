@@ -25,7 +25,7 @@ def test_go_text_is_deterministic_and_batched_contract():
     two = map_text("mitochondrial ATP synthase assembly", query_id="two", top_k=3)
     assert [p.id for p in one.predictions] == [p.id for p in two.predictions]
     assert [p.rank for p in one.predictions] == [1, 2, 3]
-    assert one.provenance["artifact_version"] == "filipe-go-v1"
+    assert one.provenance["artifact_version"] == "filipe-go-filtered-v1"
     assert one.provenance["metric"]["limitation"].startswith("Scores are descriptive")
 
 
@@ -56,3 +56,28 @@ def test_batch_reaction_resolves_before_asset_dependent_inference():
     with pytest.raises(ValidationError) as exc:
         map_batch(["text"], query_ids=[])
     assert exc.value.code == "invalid_query_ids"
+
+
+def test_filtered_go_version_is_promoted_and_old_version_rolls_back():
+    registry = default_registry()
+    assert registry.resolve("go-text").version == "2.0.0"
+    assert registry.resolve("go-text", "1.0.0").version == "1.0.0"
+    assert registry.resolve("go-text", "2.0.0").plugin.metadata["default"] is True
+
+
+def test_filtered_go_artifact_includes_filter_benchmark_and_provenance():
+    manifest = verify_manifest(Path(__file__).parents[1] / "ontomap/artifacts/filipe-go-filtered-v1/manifest.json")
+    assert manifest["filter"]["rule"] == "GO depth >= 2"
+    assert manifest["filter"]["retained_go_ids"] == 10122
+    assert manifest["filter"]["excluded_go_ids"] == 33
+    assert manifest["promotion"]["previous_default_method_version"] == "1.0.0"
+    assert manifest["compatibility"]["rollback_method_version"] == "1.0.0"
+    assert manifest["provenance"]["raw_data_included"] is False
+
+
+def test_filtered_go_default_maps_arbitrary_text_with_versioned_provenance():
+    result = map_text("arbitrary future enzyme text with no identifier", top_k=2)
+    assert len(result.predictions) == 2
+    assert result.provenance["method_version"] == "2.0.0"
+    assert result.provenance["artifact_version"] == "filipe-go-filtered-v1"
+    assert result.provenance["training"]["training_records"] == 103375

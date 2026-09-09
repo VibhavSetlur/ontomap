@@ -77,7 +77,7 @@ The acquisition script pins commit `194ac8afe48f8a606c0dd07ba3c7af10c02ba2fd`, r
 
 ## Compatibility, provenance, and security
 
-`reaction@legacy-1` remains available for compatibility; `go-text@1.0.0` is a distinct registry method. Select a known immutable version with `--method-version` or API `version`; `list` and `describe` reveal locally registered choices in a source/current editable install. Research promotion means authoring a new artifact directory, manifest, and version; roll back by selecting a prior version—never overwrite a manifest-described artifact. This is artifact/version authoring, not a CLI lifecycle command. Preserve result provenance and input/source licenses in downstream records, verify acquired artifacts, and do not treat mappings as authoritative biological assertions. See [compatibility](docs/COMPATIBILITY_MIGRATION.md) and [artifact security](docs/ARTIFACTS_SECURITY_PROVENANCE.md).
+`reaction@legacy-1` remains available for compatibility; `go-text@2.0.0` is the promoted filtered registry method; `go-text@1.0.0` remains an explicit rollback version. Select a known immutable version with `--method-version` or API `version`; `list` and `describe` reveal locally registered choices in a source/current editable install. Research promotion means authoring a new artifact directory, manifest, and version; roll back by selecting a prior version—never overwrite a manifest-described artifact. This is artifact/version authoring, not a CLI lifecycle command. Preserve result provenance and input/source licenses in downstream records, verify acquired artifacts, and do not treat mappings as authoritative biological assertions. See [compatibility](docs/COMPATIBILITY_MIGRATION.md) and [artifact security](docs/ARTIFACTS_SECURITY_PROVENANCE.md).
 
 ## Feature matrix
 
@@ -86,7 +86,7 @@ The acquisition script pins commit `194ac8afe48f8a606c0dd07ba3c7af10c02ba2fd`, r
 | Inputs | SSO/KO IDs, descriptions, structured name/EC | text or text files |
 | CLI | `map --method reaction` (default) | `map --method go-text --text` / `--text-input` |
 | Python API | `Pipeline` | `map_text`, `map_batch` |
-| Method version | legacy compatibility method | `go-text@1.0.0` |
+| Method version | legacy compatibility method | `go-text@2.0.0` default (`go-text@1.0.0` rollback) |
 | External ModelSEED corpus | optional/acquire-only | not required |
 | Batch/output formats | supported | supported via `map` output writer |
 
