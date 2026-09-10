@@ -20,7 +20,7 @@ class FilipeGOPlugin:
     def _load(self) -> None:
         if self._model is None:
             self._manifest = verify_manifest(self.artifact_dir / "manifest.json")
-            self._model = joblib.load(self.artifact_dir / "filipe_text_to_go.joblib")
+            self._model = joblib.load(self.artifact_dir / self._manifest["training"].get("model", "filipe_text_to_go.joblib"))
     def map(self, query: MappingQuery) -> MappingResult:
         self._load(); model = self._model
         word = normalize(model["word_vectorizer"].transform([query.text]))
@@ -31,10 +31,23 @@ class FilipeGOPlugin:
         predictions = [Prediction(id=str(model["labels"][index]), score=float(scores[index]), rank=rank + 1) for rank, index in enumerate(order)]
         return MappingResult(query.query_id, predictions, {"method": self.name, "method_version": self.version,
             "implementation": type(self).__module__ + "." + type(self).__name__, "schema_version": 1,
-            "artifact_version": self._manifest["artifact_version"], "artifact_sha256": self._manifest["files"]["filipe_text_to_go.joblib"]["sha256"],
+            "artifact_version": self._manifest["artifact_version"], "artifact_sha256": self._manifest["files"][self._manifest["training"].get("model", "filipe_text_to_go.joblib")]["sha256"],
             "model_version": self._manifest["model_version"], "benchmark": self._manifest["benchmark"],
             "metric": self._manifest["metric"], "compatibility": self._manifest["compatibility"],
             "training": self._manifest["training"], "runtime_version": __version__})
+
+
+class FilipeHeightDedupGOPlugin(FilipeGOPlugin):
+    """Height-prepared, deduplicated Filipe model; height is never a runtime filter."""
+    version = "3.0.0"
+    metadata = {
+        "schema": "mapping-result-v1", "compatibility": {"input": "text only", "output": "MappingResult"},
+        "provenance": "manifest-backed height-prepared training artifact", "runtime": "offline", "default": True,
+        "artifact_version": "filipe-go-height-dedup-v2", "artifact_sha256": "da5d1e158cd34058bfe7185b49a905e5efe3c379544b5059bdde8c1b740c44cc", "benchmark": "filipe-go-height-dedup-v2",
+        "preparation": "height >=2 applied before training-data split and dedup only; no runtime prediction filtering",
+    }
+    def __init__(self, artifact_dir: Path | None = None) -> None:
+        super().__init__(artifact_dir or Path(__file__).resolve().parents[1] / "artifacts" / "filipe-go-height-dedup-v2")
 
 
 class FilipeFilteredGOPlugin(FilipeGOPlugin):
@@ -46,7 +59,7 @@ class FilipeFilteredGOPlugin(FilipeGOPlugin):
         "deprecation": None,
         "provenance": "manifest-backed filtered research artifact",
         "runtime": "offline",
-        "default": True,
+        "default": False,
         "artifact_version": "filipe-go-filtered-v1",
         "artifact_sha256": "81e1bc338c57c050d5f87d31095b7b9f65240e421dbcbd7662fb33c11974b602",
         "filter_version": "go-depth-gte-2-v1",

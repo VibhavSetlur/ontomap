@@ -13,6 +13,6 @@ proof that a pre-existing local corpus matches that revision. Runtime selection 
 ordinary GO inference does not read or download it.
 
 
-## Filtered GO promotion and rollback
+## GO promotion and rollback
 
-`ontomap/artifacts/filipe-go-filtered-v1/` is an immutable, manifest-verified filtered model bundle. It records the model, filter (`GO depth >= 2`), benchmark, output schema, and research-bundle provenance versions and checksums. `go-text@2.0.0` is the intentional default; select `go-text@1.0.0` to roll back without replacing either artifact. Both versions map arbitrary local text without identifiers, database access, or network access.
+`ontomap/artifacts/filipe-go-height-dedup-v2/` is the immutable, manifest-verified `go-text@3.0.0` default. Its supplied GO `height` >= 2 rule is applied only before training-label split/deduplication, never to runtime predictions. It records the height source checksum, missing-height policy, benchmark, and derived-artifact provenance. Select `go-text@2.0.0` or `go-text@1.0.0` explicitly to roll back; immutable artifacts are never replaced. All versions map arbitrary local text without identifiers, database access, or network access.

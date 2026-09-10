@@ -1,0 +1,74 @@
+{
+  "artifact_version": "filipe-go-height-dedup-v2",
+  "benchmark": {
+    "metrics_file": "benchmark.metrics.json",
+    "name": "filipe-go-height-dedup-v2",
+    "schema_version": 1,
+    "version": "2.0.0"
+  },
+  "compatibility": {
+    "deprecated_adapter": "reaction@legacy-1",
+    "input": "text only",
+    "output_schema": 1,
+    "rollback_artifact_version": "filipe-go-filtered-v1",
+    "rollback_method_version": "2.0.0"
+  },
+  "files": {
+    "benchmark.metrics.json": {
+      "sha256": "04e3fb9c43a55e93eaf1859600cf824e35eea8ccffcb938c3a8bff3b71ab37c5"
+    },
+    "height_filter_summary.json": {
+      "sha256": "902a09e857429061b9b8ee03bef60f383c21ff98a79f70f014529d379b6dc625"
+    },
+    "model.joblib": {
+      "sha256": "da5d1e158cd34058bfe7185b49a905e5efe3c379544b5059bdde8c1b740c44cc"
+    },
+    "split_manifest.json": {
+      "sha256": "5599431fa0f9178fe2cc3aa2055f3b5ddc4888594b740213d1c2a199a1423c22"
+    }
+  },
+  "method_version": "3.0.0",
+  "metric": {
+    "coverage_any_gold_in_candidate_universe": 0.9842022116903634,
+    "limitation": "Scores are descriptive held-out Filipe lexical cosine retrieval scores, not calibrated probabilities; they do not transfer to Henry.",
+    "mrr": 0.5337443002770972,
+    "top1": 0.43364928909952605,
+    "top100": 0.9470774091627172,
+    "top20": 0.8372827804107424,
+    "top5": 0.6571879936808847
+  },
+  "model_version": "3.0.0",
+  "preparation": {
+    "dedup_protocol": "exact normalized-text groups plus exhaustive char_wb TF-IDF [3,5] cosine >= 0.90 connected components; components split deterministically",
+    "excluded_go_terms": 9352,
+    "go_metrics_sha256": "a3f1ec6bf13aa4e6a6195156ca2844f338b284187f1dac97a4dd38ccd8cb88f8",
+    "height_source": "data/raw/go_metrics.tsv::height",
+    "missing_height_handling": "fail closed; missing height count must be zero",
+    "ontology_algorithm": "supplied GO metrics height field; no depth substitution",
+    "retained_go_terms": 803,
+    "rule": "retain GO terms with supplied ontology height >= 2; exclude height <= 1",
+    "stage": "pre-training only; runtime predictions are never height-filtered"
+  },
+  "promotion": {
+    "default": true,
+    "previous_default_method_version": "2.0.0",
+    "rollback": "select go-text@2.0.0 explicitly; immutable artifacts are never overwritten"
+  },
+  "provenance": {
+    "height_filter_summary_sha256": "902a09e857429061b9b8ee03bef60f383c21ff98a79f70f014529d379b6dc625",
+    "raw_data_included": false,
+    "source_artifact": "research workspace height+dedup bundle",
+    "source_model_sha256": "da5d1e158cd34058bfe7185b49a905e5efe3c379544b5059bdde8c1b740c44cc",
+    "split_manifest_sha256": "5599431fa0f9178fe2cc3aa2055f3b5ddc4888594b740213d1c2a199a1423c22"
+  },
+  "schema_version": 1,
+  "training": {
+    "candidate_universe": "GO labels observed in training only",
+    "model": "model.joblib",
+    "provenance": "accepted public-safe derived height-prepared and text-deduplicated artifact; no raw data included",
+    "representation": "word and char TF-IDF; equal-weight cosine to training-group GO centroids",
+    "training_groups": 4735,
+    "training_labels": 385,
+    "training_records": 46460
+  }
+}

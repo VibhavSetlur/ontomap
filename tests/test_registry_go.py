@@ -25,7 +25,7 @@ def test_go_text_is_deterministic_and_batched_contract():
     two = map_text("mitochondrial ATP synthase assembly", query_id="two", top_k=3)
     assert [p.id for p in one.predictions] == [p.id for p in two.predictions]
     assert [p.rank for p in one.predictions] == [1, 2, 3]
-    assert one.provenance["artifact_version"] == "filipe-go-filtered-v1"
+    assert one.provenance["artifact_version"] == "filipe-go-height-dedup-v2"
     assert one.provenance["metric"]["limitation"].startswith("Scores are descriptive")
 
 
@@ -60,9 +60,10 @@ def test_batch_reaction_resolves_before_asset_dependent_inference():
 
 def test_filtered_go_version_is_promoted_and_old_version_rolls_back():
     registry = default_registry()
-    assert registry.resolve("go-text").version == "2.0.0"
+    assert registry.resolve("go-text").version == "3.0.0"
     assert registry.resolve("go-text", "1.0.0").version == "1.0.0"
-    assert registry.resolve("go-text", "2.0.0").plugin.metadata["default"] is True
+    assert registry.resolve("go-text", "3.0.0").plugin.metadata["default"] is True
+    assert registry.resolve("go-text", "2.0.0").plugin.metadata["default"] is False
 
 
 def test_filtered_go_artifact_includes_filter_benchmark_and_provenance():
@@ -78,6 +79,15 @@ def test_filtered_go_artifact_includes_filter_benchmark_and_provenance():
 def test_filtered_go_default_maps_arbitrary_text_with_versioned_provenance():
     result = map_text("arbitrary future enzyme text with no identifier", top_k=2)
     assert len(result.predictions) == 2
-    assert result.provenance["method_version"] == "2.0.0"
-    assert result.provenance["artifact_version"] == "filipe-go-filtered-v1"
-    assert result.provenance["training"]["training_records"] == 103375
+    assert result.provenance["method_version"] == "3.0.0"
+    assert result.provenance["artifact_version"] == "filipe-go-height-dedup-v2"
+    assert result.provenance["training"]["training_records"] == 46460
+
+
+def test_height_dedup_artifact_is_preparation_only_not_runtime_filter():
+    manifest = verify_manifest(Path(__file__).parents[1] / "ontomap/artifacts/filipe-go-height-dedup-v2/manifest.json")
+    assert manifest["preparation"]["stage"] == "pre-training only; runtime predictions are never height-filtered"
+    assert manifest["preparation"]["retained_go_terms"] == 803
+    assert manifest["preparation"]["excluded_go_terms"] == 9352
+    assert manifest["promotion"]["previous_default_method_version"] == "2.0.0"
+    assert manifest["compatibility"]["rollback_method_version"] == "2.0.0"
