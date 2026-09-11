@@ -1,36 +1,17 @@
-# OntoMap examples
+# Examples
 
-Examples are runnable from a checkout or installed environment; they do not require a machine-specific path. First follow [installation](../docs/INSTALL.md), activate `.venv`, and run commands from the repository root.
+The examples demonstrate the legacy reaction pipeline and require its configured local runtime assets and external ModelSEED data. Start with the offline GO quickstart in the repository [README](../README.md) when validating a fresh clone.
 
-```bash
-. .venv/bin/activate
-bash examples/quickstart.sh
-python examples/01_text_input.py
-python examples/02_ec_augment.py
-python examples/03_batch_csv.py > batch.sssom.tsv
-python examples/04_varied_inputs.py
-python examples/05_sqlite_output.py
-```
-
-The existing scripts demonstrate the legacy reaction workflow: IDs, descriptions, EC augmentation, batch input, SSSOM, and SQLite. They may require installed/bundled weights; use `ontomap fetch-models` and `ontomap info --verify-manifest` when appropriate.
-
-For the registry text-to-GO workflow, use the CLI directly:
+After setting up `.venv`, configuring `ONTOMAP_MODELSEED`, and acquiring permitted assets, run examples from the repository root:
 
 ```bash
-ontomap map --method go-text --text 'DNA repair helicase' --top-k 5
-ontomap map --method go-text --text-input annotations.tsv \
-  --id-column gene --text-column product --output go.jsonl
+.venv/bin/python examples/quickstart.py
+.venv/bin/python examples/01_text_input.py
+.venv/bin/python examples/02_ec_augment.py
+.venv/bin/python examples/03_batch_csv.py
+.venv/bin/python examples/04_varied_inputs.py
+.venv/bin/python examples/05_sqlite_output.py
+.venv/bin/python examples/06_map_published_model.py
 ```
 
-See [API and CLI](../docs/API_CLI.md) for options, output formats, and method versions; see [usage](../docs/USAGE.md) for output and provenance guidance.
-
-| File | Demonstrates |
-|---|---|
-| `quickstart.sh` | legacy CLI tour and output formats |
-| `quickstart.py` | legacy programmatic mapping |
-| `01_text_input.py` | legacy free-text descriptions |
-| `02_ec_augment.py` | legacy EC augmentation |
-| `03_batch_csv.py` | legacy batch IDs and SSSOM |
-| `04_varied_inputs.py` | legacy description shapes |
-| `05_sqlite_output.py` | SQLite output |
-| `sample_ids.csv` | illustrative SSO IDs |
+`quickstart.sh` is a broader operator demo and writes temporary results under `/tmp`; review it before use. The scripts are examples, not a source of private data or a replacement for the current command reference. See [README](../README.md), [reference](../docs/REFERENCE.md), and [operations](../docs/OPERATIONS.md) for current command, asset, output, and provenance requirements.

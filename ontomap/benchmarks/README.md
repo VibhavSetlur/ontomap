@@ -1,6 +1,11 @@
-# Filipe GO benchmark harness
+# Public GO benchmark record
 
-`filipe-go-v1.metrics.json` is the accepted public-safe metric record, schema version 1.
-The full benchmark requires excluded source data and is deliberately not part of runtime.
-It records 130,061 entities, a 104,032/26,029 train/test split, 4,588 candidates, no entity overlap,
-top-1/5/20/100 of .7989/.9218/.9502/.9705, MRR .8570, and coverage .9856. Scores are not calibrated probabilities.
+`filipe-go-v1.metrics.json` is a checked-in, public-safe metric record for the named artifact. The full source benchmark data is intentionally excluded from runtime and this repository.
+
+Read the artifact manifest and metric record with the registry context:
+
+```bash
+.venv/bin/ontomap describe go-text --method-version 1.0.0
+```
+
+The metrics describe held-out retrieval for that immutable artifact; scores are not calibrated probabilities and do not establish performance on Henry, private data, or a new deployment population. Current default and rollback registry choices are documented in the repository [README](../../README.md) and [operations guide](../../docs/OPERATIONS.md).
