@@ -39,12 +39,12 @@ Its signature is `aggregate_annotation_tsv(input_path, output_path, provenance_p
 
 ```python
 from ontomap.api import map_text, map_batch
-result = map_text('DNA repair helicase', method='go-text', version='1.0.0', query_id='gene-1', top_k=20)
+result = map_text('DNA repair helicase', method='go-text', query_id='gene-1', top_k=20)
 results = map_batch(['DNA repair helicase', 'ATP synthase assembly'],
-                    method='go-text', version='1.0.0', query_ids=['gene-1', 'gene-2'], top_k=20)
+                    method='go-text', version='4.0.0', query_ids=['gene-1', 'gene-2'], top_k=20)
 ```
 
-`map_batch` preserves input order and generates `Q1`, `Q2`, … when IDs are omitted. The registry resolves the selected local method/version and returns provenance-bearing results. `go-text@2.0.0` accepts text by default; select `go-text@1.0.0` explicitly for rollback; `reaction@legacy-1` is the compatibility method. Promote research artifacts by adding a new immutable directory/manifest/version, and roll back by selecting a prior version; these are authoring and selection practices, not CLI lifecycle commands.
+`map_batch` preserves input order and generates `Q1`, `Q2`, … when IDs are omitted. The registry resolves the selected local method/version and returns provenance-bearing results. `go-text@4.0.0` accepts text by default. It was trained after retaining GO rows whose height (distance to furthest descendant) is `<= 1`, excluding `>= 2`, then deduplicating before the split; runtime inference does not filter candidates. Select `go-text@2.0.0` (prior depth model) or `go-text@3.0.0` (prior inverted-height model) explicitly to roll back; `reaction@legacy-1` is the compatibility method. Promote research artifacts by adding a new immutable directory/manifest/version, and roll back by selecting a prior version; these are authoring and selection practices, not CLI lifecycle commands.
 
 ## CLI
 
@@ -57,7 +57,7 @@ ontomap map --input ids.csv --direction sso --output reactions.sssom.tsv
 # GO single and batch
 ontomap map --method go-text --text 'DNA repair helicase' --top-k 20
 ontomap map --method go-text --text-input genes.tsv --text-column product --id-column gene \
-  --method-version 1.0.0 --output go.jsonl
+  --method-version 4.0.0 --output go.jsonl
 ```
 
 `map` options include `--direction {sso,ko}`, `--method {reaction,go-text}`, `--method-version`, `--text-column`, `--id-column`, `--text-id`, `--input-format {csv,tsv,json,jsonl,parquet,txt}`, `--output`, `--format {sssom-tsv,json,jsonl,csv,tsv,parquet,sqlite}`, `--top-k`, `--batch-size`, `--device`, `--ec-augment`, and `--quiet`.

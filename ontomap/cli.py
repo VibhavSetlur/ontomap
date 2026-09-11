@@ -107,8 +107,17 @@ def cmd_map(args: argparse.Namespace) -> int:
             for text, query_id in zip(descriptions, description_ids)
         ]
     else:
+        from ontomap import _paths
+        corpus_dir = _paths.modelseed_corpus_dir()
+        if not (corpus_dir / "reactions.tsv").is_file():
+            print(
+                "ERROR: reaction mapping requires an acquire-only ModelSEED corpus; "
+                "run scripts/build_corpus.py or pass ONTOMAP_MODELSEED with reactions.tsv.",
+                file=sys.stderr,
+            )
+            return 2
         pipe = Pipeline.from_pretrained(direction=direction, device=device,
-                                         ec_augment=getattr(args, "ec_augment", False))
+                                          ec_augment=getattr(args, "ec_augment", False))
         if descriptions is not None:
             results = pipe.map_descriptions(descriptions, ids=description_ids, top_k=args.top_k,
                                             batch_size=args.batch_size, verbose=not args.quiet)

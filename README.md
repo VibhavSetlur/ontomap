@@ -40,7 +40,7 @@ Both commands print one JSON result per query without `--output`. Batch input fo
 
 ```bash
 ontomap list                              # registered method/version pairs
-ontomap describe go-text --method-version 1.0.0
+ontomap describe go-text --method-version 4.0.0
 ontomap info --json
 ontomap fetch-models
 ontomap bench --help
@@ -58,8 +58,8 @@ legacy = Pipeline.from_pretrained(direction='sso', device='auto')
 reaction = legacy.map_one('SSO:000000027', top_k=5)
 
 from ontomap.api import map_text, map_batch
-one_go = map_text('DNA repair helicase', method='go-text', version='1.0.0')
-many_go = map_batch(['DNA repair helicase'], method='go-text', version='1.0.0')
+one_go = map_text('DNA repair helicase', method='go-text')  # corrected 4.0.0 default
+many_go = map_batch(['DNA repair helicase'], method='go-text', version='4.0.0')
 ```
 
 Legacy methods and serializers are detailed in [API and CLI](docs/API_CLI.md). Results include ranked mappings and method/version provenance. Reaction results include reaction-oriented fields; GO results are GO mappings. GO scores are retrieval scores, not calibrated probabilities. For confidence, clustering, model mapping, benchmarking, and output details, see [usage](docs/USAGE.md).
@@ -77,7 +77,7 @@ The acquisition script pins commit `194ac8afe48f8a606c0dd07ba3c7af10c02ba2fd`, r
 
 ## Compatibility, provenance, and security
 
-`reaction@legacy-1` remains available for compatibility; `go-text@2.0.0` is the promoted filtered registry method; `go-text@1.0.0` remains an explicit rollback version. Select a known immutable version with `--method-version` or API `version`; `list` and `describe` reveal locally registered choices in a source/current editable install. Research promotion means authoring a new artifact directory, manifest, and version; roll back by selecting a prior version—never overwrite a manifest-described artifact. This is artifact/version authoring, not a CLI lifecycle command. Preserve result provenance and input/source licenses in downstream records, verify acquired artifacts, and do not treat mappings as authoritative biological assertions. See [compatibility](docs/COMPATIBILITY_MIGRATION.md) and [artifact security](docs/ARTIFACTS_SECURITY_PROVENANCE.md).
+`reaction@legacy-1` remains available for compatibility. The default `go-text@4.0.0` uses immutable `filipe-go-height-lte-1-dedup-v1`: GO **height** is distance to the furthest descendant, and `height <= 1` was retained before training and text-deduplicated splitting; terms with `height >= 2` were excluded. The runtime never height-filters candidates—the model vocabulary is already the filtered training vocabulary. For explicit rollback, select the prior depth model `go-text@2.0.0` or the prior inverted-height model `go-text@3.0.0`; their weights and manifests remain immutable. `list` and `describe` reveal versions and checksums. Research promotion means authoring a new artifact directory, manifest, and version; roll back by selecting a prior version—never overwrite a manifest-described artifact. Results include method, model, artifact, filter, benchmark, and runtime provenance. GO scores are uncalibrated retrieval scores and benchmark results do not transfer to Henry. See [compatibility](docs/COMPATIBILITY_MIGRATION.md) and [artifact security](docs/ARTIFACTS_SECURITY_PROVENANCE.md).
 
 ## Feature matrix
 
@@ -86,7 +86,7 @@ The acquisition script pins commit `194ac8afe48f8a606c0dd07ba3c7af10c02ba2fd`, r
 | Inputs | SSO/KO IDs, descriptions, structured name/EC | text or text files |
 | CLI | `map --method reaction` (default) | `map --method go-text --text` / `--text-input` |
 | Python API | `Pipeline` | `map_text`, `map_batch` |
-| Method version | legacy compatibility method | `go-text@2.0.0` default (`go-text@1.0.0` rollback) |
+| Method version | legacy compatibility method | `go-text@4.0.0` default (`go-text@2.0.0` depth and `@3.0.0` inverted-height rollback) |
 | External ModelSEED corpus | optional/acquire-only | not required |
 | Batch/output formats | supported | supported via `map` output writer |
 

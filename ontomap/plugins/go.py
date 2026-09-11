@@ -38,16 +38,29 @@ class FilipeGOPlugin:
 
 
 class FilipeHeightDedupGOPlugin(FilipeGOPlugin):
-    """Height-prepared, deduplicated Filipe model; height is never a runtime filter."""
+    """Prior inverted-height model, retained only for explicit rollback."""
     version = "3.0.0"
     metadata = {
         "schema": "mapping-result-v1", "compatibility": {"input": "text only", "output": "MappingResult"},
-        "provenance": "manifest-backed height-prepared training artifact", "runtime": "offline", "default": True,
+        "provenance": "manifest-backed prior height-prepared training artifact", "runtime": "offline", "default": False,
         "artifact_version": "filipe-go-height-dedup-v2", "artifact_sha256": "da5d1e158cd34058bfe7185b49a905e5efe3c379544b5059bdde8c1b740c44cc", "benchmark": "filipe-go-height-dedup-v2",
         "preparation": "height >=2 applied before training-data split and dedup only; no runtime prediction filtering",
     }
     def __init__(self, artifact_dir: Path | None = None) -> None:
         super().__init__(artifact_dir or Path(__file__).resolve().parents[1] / "artifacts" / "filipe-go-height-dedup-v2")
+
+
+class FilipeHeightLteDedupGOPlugin(FilipeGOPlugin):
+    """Corrected specific-term GO model; height was used only before training."""
+    version = "4.0.0"
+    metadata = {
+        "schema": "mapping-result-v1", "compatibility": {"input": "text only", "output": "MappingResult", "rollback_method_versions": ["2.0.0", "3.0.0"]},
+        "provenance": "manifest-backed corrected height<=1 and deduplicated training artifact", "runtime": "offline", "default": True,
+        "artifact_version": "filipe-go-height-lte-1-dedup-v1", "artifact_sha256": "0a3504f2dbf8392e16be759b4f546be21cec007f1e642eb8a17d82b4d4609974", "benchmark": "filipe-go-height-lte-1-dedup-v1",
+        "filter_version": "go-height-lte-1-v1", "preparation": "height <=1 applied before training-data split and dedup only; no runtime prediction filtering",
+    }
+    def __init__(self, artifact_dir: Path | None = None) -> None:
+        super().__init__(artifact_dir or Path(__file__).resolve().parents[1] / "artifacts" / "filipe-go-height-lte-1-dedup-v1")
 
 
 class FilipeFilteredGOPlugin(FilipeGOPlugin):
